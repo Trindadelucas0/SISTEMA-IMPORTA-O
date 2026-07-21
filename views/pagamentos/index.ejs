@@ -1,0 +1,81 @@
+<%- include('../partials/header') %>
+
+<section class="mb-6 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <h1 class="brand text-3xl font-bold">Pagamentos</h1>
+    <p class="mt-1 text-[#4a5560]">Saídas de caixa soltas. Alimentam o saldo; pedidos consomem via alocação.</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="/saldo" class="btn btn-ghost">Ver saldo</a>
+    <a href="/pagamentos/novo" class="btn btn-primary">Novo pagamento</a>
+  </div>
+</section>
+
+<%
+  const saldoCards = (typeof saldo !== 'undefined' && saldo) ? saldo : {
+    total_usd: 0,
+    total_brl: 0,
+    disponivel_usd: 0,
+    disponivel_brl: 0,
+  };
+%>
+<section class="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
+    <p class="text-sm text-[#4a5560]">Pago USD (total)</p>
+    <p class="text-xl font-bold"><%= moneyUsd(saldoCards.total_usd) %></p>
+  </div>
+  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
+    <p class="text-sm text-[#4a5560]">Pago BRL (total)</p>
+    <p class="text-xl font-bold"><%= moneyBrl(saldoCards.total_brl) %></p>
+  </div>
+  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
+    <p class="text-sm text-[#4a5560]">Disponível USD</p>
+    <p class="text-xl font-bold"><%= moneyUsd(saldoCards.disponivel_usd) %></p>
+  </div>
+  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
+    <p class="text-sm text-[#4a5560]">Disponível BRL</p>
+    <p class="text-xl font-bold"><%= moneyBrl(saldoCards.disponivel_brl) %></p>
+  </div>
+</section>
+
+<% if (!pagamentos.length) { %>
+  <p class="rounded-lg border border-dashed border-[#d4cfc3] bg-white/50 p-6 text-[#4a5560]">Nenhum pagamento.</p>
+<% } else { %>
+  <div class="overflow-x-auto rounded-lg border border-[#d4cfc3] bg-white/70">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-[#1a2332] text-white">
+        <tr>
+          <th class="px-3 py-2">Data</th>
+          <th class="px-3 py-2">Descrição</th>
+          <th class="px-3 py-2">Tipo</th>
+          <th class="px-3 py-2">USD</th>
+          <th class="px-3 py-2">Dólar dia</th>
+          <th class="px-3 py-2">BRL</th>
+          <th class="px-3 py-2">Disponível USD</th>
+          <th class="px-3 py-2"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% pagamentos.forEach(function(pg) { %>
+          <tr class="border-t border-[#d4cfc3]">
+            <td class="px-3 py-2"><%= pg.data_pagamento ? new Date(pg.data_pagamento).toLocaleDateString('pt-BR') : '—' %></td>
+            <td class="px-3 py-2"><%= pg.descricao %></td>
+            <td class="px-3 py-2"><%= pg.tipo %></td>
+            <td class="px-3 py-2"><%= moneyUsd(pg.valor_usd) %></td>
+            <td class="px-3 py-2"><%= numberBr(pg.dolar_dia, 4) %></td>
+            <td class="px-3 py-2"><%= moneyBrl(pg.valor_brl) %></td>
+            <td class="px-3 py-2"><%= moneyUsd(pg.disponivel_usd) %></td>
+            <td class="px-3 py-2 text-right space-x-2">
+              <a href="/pagamentos/<%= pg.id %>/editar" class="text-[#0f6e56] underline">Editar</a>
+              <form class="inline" method="POST" action="/pagamentos/<%= pg.id %>?_method=DELETE" onsubmit="return confirm('Excluir pagamento e alocações?')">
+                <button type="submit" class="text-red-700 underline">Excluir</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

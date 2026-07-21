@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title + ' · Paulo' : 'Paulo' %></title>
+  <link rel="stylesheet" href="/css/output.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,500;9..40,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a2332;
+      --paper: #f3f0e8;
+      --accent: #0f6e56;
+      --line: #d4cfc3;
+    }
+    body {
+      font-family: "IBM Plex Sans", system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at top left, #e8efe9 0%, transparent 45%),
+        linear-gradient(180deg, #f7f4ee 0%, #ebe6db 100%);
+      min-height: 100vh;
+    }
+    .brand { font-family: "DM Sans", sans-serif; letter-spacing: -0.03em; }
+    .input-yellow {
+      background-color: #fff7a8 !important;
+      border-color: #e0c84a !important;
+    }
+    .sheet-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .sheet table { min-width: 1500px; border-collapse: collapse; width: 100%; }
+    .sheet th, .sheet td {
+      border: 1px solid var(--line);
+      padding: 0.35rem 0.45rem;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+    .sheet th {
+      background: #1a2332;
+      color: #fff;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    .sheet input[type="number"], .sheet input[type="text"] {
+      width: 100%;
+      min-width: 4.5rem;
+      border: 1px solid #d4cfc3;
+      border-radius: 0.25rem;
+      padding: 0.2rem 0.35rem;
+      background: #fff;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      border-radius: 0.375rem;
+      padding: 0.5rem 0.9rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { filter: brightness(1.05); }
+    .btn-ghost { background: transparent; border-color: var(--line); color: var(--ink); }
+    .btn-danger { background: #8b2e2e; color: #fff; }
+    .field {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 0.375rem;
+      padding: 0.55rem 0.7rem;
+      background: #fff;
+    }
+    .label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem; }
+  </style>
+</head>
+<body>
+  <%- include('../partials/nav') %>
+  <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6">

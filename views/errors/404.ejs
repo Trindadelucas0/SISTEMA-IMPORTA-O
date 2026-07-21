@@ -1,0 +1,18 @@
+<%- include('../partials/header') %>
+<section class="py-16 text-center">
+  <h1 class="brand text-3xl font-bold"><%= typeof title !== 'undefined' ? title : 'Página não encontrada' %></h1>
+  <p class="mt-2 text-[#4a5560]">
+    <%= typeof message !== 'undefined' && message
+      ? message
+      : 'Esse endereço não existe ou o registro foi removido.' %>
+  </p>
+  <% if (typeof pathTried !== 'undefined' && pathTried) { %>
+    <p class="mt-2 font-mono text-sm text-[#4a5560]"><%= pathTried %></p>
+  <% } %>
+  <div class="mt-6 flex flex-wrap justify-center gap-2">
+    <a href="/" class="btn btn-primary">Dashboard</a>
+    <a href="/pedidos" class="btn btn-ghost">Pedidos</a>
+    <a href="/saldo" class="btn btn-ghost">Saldo</a>
+  </div>
+</section>
+<%- include('../partials/footer') %>

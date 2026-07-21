@@ -1,0 +1,42 @@
+<%- include('../partials/header') %>
+
+<section class="mb-6">
+  <h1 class="brand text-3xl font-bold"><%= pedido && pedido.id ? 'Editar pedido' : 'Novo pedido' %></h1>
+</section>
+
+<% if (error) { %>
+  <p class="mb-4 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert"><%= error %></p>
+<% } %>
+
+<form
+  method="POST"
+  action="<%= pedido && pedido.id ? '/pedidos/' + pedido.id + '?_method=PUT' : '/pedidos' %>"
+  class="max-w-xl space-y-4 rounded-lg border border-[#d4cfc3] bg-white/80 p-5"
+>
+  <div>
+    <label class="label" for="codigo">Código</label>
+    <input class="field" id="codigo" name="codigo" required value="<%= pedido?.codigo || '' %>" placeholder="A23">
+  </div>
+  <div>
+    <label class="label" for="fornecedor">Fornecedor</label>
+    <input class="field" id="fornecedor" name="fornecedor" value="<%= pedido?.fornecedor || '' %>">
+  </div>
+  <div>
+    <label class="label" for="status">Status</label>
+    <select class="field" id="status" name="status">
+      <% statusList.forEach(function(s) { %>
+        <option value="<%= s %>" <%= (pedido?.status || 'aberta') === s ? 'selected' : '' %>><%= s %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div>
+    <label class="label" for="observacao">Observação</label>
+    <textarea class="field" id="observacao" name="observacao" rows="3"><%= pedido?.observacao || '' %></textarea>
+  </div>
+  <div class="flex gap-2">
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <a href="/pedidos" class="btn btn-ghost">Cancelar</a>
+  </div>
+</form>
+
+<%- include('../partials/footer') %>

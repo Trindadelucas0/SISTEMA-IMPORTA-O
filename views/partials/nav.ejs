@@ -1,0 +1,12 @@
+<header class="border-b border-[#d4cfc3] bg-[#f7f4ee]/80 backdrop-blur">
+  <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
+    <a href="/" class="brand text-2xl font-bold text-[#0f6e56]">Paulo</a>
+    <nav class="flex flex-wrap gap-2 text-sm font-medium" aria-label="Principal">
+      <a href="/" class="rounded px-3 py-1.5 <%= currentPath === '/' ? 'bg-[#0f6e56] text-white' : 'hover:bg-[#e8efe9]' %>">Dashboard</a>
+      <a href="/pedidos" class="rounded px-3 py-1.5 <%= currentPath.startsWith('/pedidos') ? 'bg-[#0f6e56] text-white' : 'hover:bg-[#e8efe9]' %>">Pedidos</a>
+      <a href="/pagamentos" class="rounded px-3 py-1.5 <%= currentPath.startsWith('/pagamentos') ? 'bg-[#0f6e56] text-white' : 'hover:bg-[#e8efe9]' %>">Pagamentos</a>
+      <a href="/saldo" class="rounded px-3 py-1.5 <%= currentPath.startsWith('/saldo') ? 'bg-[#0f6e56] text-white' : 'hover:bg-[#e8efe9]' %>">Saldo</a>
+      <a href="/desembaraco" class="rounded px-3 py-1.5 <%= currentPath.startsWith('/desembaraco') ? 'bg-[#0f6e56] text-white' : 'hover:bg-[#e8efe9]' %>">Desembaraço</a>
+    </nav>
+  </div>
+</header>

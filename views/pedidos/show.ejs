@@ -1,0 +1,180 @@
+<%- include('../partials/header') %>
+
+<section class="mb-6 flex flex-wrap items-start justify-between gap-3">
+  <div>
+    <p class="text-sm text-[#0f6e56]">Pedido</p>
+    <h1 class="brand text-3xl font-bold"><%= pedido.codigo %></h1>
+    <p class="mt-1 text-sm text-[#4a5560]">
+      <%= pedido.fornecedor || 'Sem fornecedor' %> · <%= pedido.status %>
+    </p>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <a href="/pedidos/<%= pedido.id %>/editar" class="btn btn-ghost">Editar</a>
+    <a href="/saldo" class="btn btn-ghost">Saldo / alocar</a>
+    <a href="/pagamentos/novo" class="btn btn-ghost">Novo pagamento</a>
+    <a href="/desembaraco/<%= pedido.id %>" class="btn btn-primary <%= saldo.coberto ? '' : 'opacity-70' %>">Desembaraço</a>
+    <form method="POST" action="/pedidos/<%= pedido.id %>?_method=DELETE" onsubmit="return confirm('Excluir pedido e itens?')">
+      <button type="submit" class="btn btn-danger">Excluir</button>
+    </form>
+  </div>
+</section>
+
+<section class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
+    <p class="text-sm text-[#4a5560]">Invoice USD</p>
+    <p class="text-xl font-bold"><%= moneyUsd(saldo.invoice_usd) %></p>
+  </div>
+  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
+    <p class="text-sm text-[#4a5560]">Alocado do saldo</p>
+    <p class="text-xl font-bold"><%= moneyUsd(saldo.alocado_usd) %></p>
+    <p class="text-sm text-[#4a5560]"><%= moneyBrl(saldo.alocado_brl) %></p>
+  </div>
+  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
+    <p class="text-sm text-[#4a5560]">Falta (USD)</p>
+    <p class="text-xl font-bold <%= saldo.falta_usd > 0 ? 'text-[#8b2e2e]' : 'text-[#0f6e56]' %>"><%= moneyUsd(saldo.falta_usd) %></p>
+    <p class="text-xs text-[#4a5560]"><%= saldo.status_fornecedor %></p>
+  </div>
+  <% if (desembaraco && desembaraco.custo_total_atual != null) { %>
+    <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
+      <p class="text-sm text-[#4a5560]">Custo total landado</p>
+      <p class="text-xl font-bold"><%= moneyBrl(desembaraco.custo_total_atual) %></p>
+    </div>
+  <% } %>
+  <% if (custoDelta) { %>
+    <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
+      <p class="text-sm text-[#4a5560]">Variação do custo</p>
+      <% if (custoDelta.aumentou) { %>
+        <p class="text-xl font-bold text-[#8b2e2e]">Aumentou <%= moneyBrl(custoDelta.delta) %></p>
+      <% } else if (custoDelta.diminuiu) { %>
+        <p class="text-xl font-bold text-[#0f6e56]">Diminuiu <%= moneyBrl(Math.abs(custoDelta.delta)) %></p>
+      <% } else { %>
+        <p class="text-xl font-bold">Sem variação</p>
+      <% } %>
+    </div>
+  <% } %>
+</section>
+
+<% if (alocacoes && alocacoes.length) { %>
+<section class="mb-6">
+  <h2 class="mb-2 text-lg font-semibold">Alocações neste pedido</h2>
+  <div class="overflow-x-auto rounded-lg border border-[#d4cfc3] bg-white/70">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-[#1a2332] text-white">
+        <tr>
+          <th class="px-3 py-2">Pagamento</th>
+          <th class="px-3 py-2">USD</th>
+          <th class="px-3 py-2">Dólar</th>
+          <th class="px-3 py-2">BRL</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% alocacoes.forEach(function(a) { %>
+          <tr class="border-t border-[#d4cfc3]">
+            <td class="px-3 py-2">#<%= a.pagamento_id %> · <%= a.pagamento_descricao %></td>
+            <td class="px-3 py-2"><%= moneyUsd(a.valor_usd) %></td>
+            <td class="px-3 py-2"><%= numberBr(a.dolar_dia, 4) %></td>
+            <td class="px-3 py-2"><%= moneyBrl(a.valor_brl) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+<% } %>
+
+<% if (!saldo.coberto) { %>
+  <p class="mb-6 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+    Pedido ainda não quitado no saldo. Aloque pagamentos em <a class="underline" href="/saldo">/saldo</a> antes do desembaraço/custo unitário.
+  </p>
+<% } %>
+
+<section class="mb-8">
+  <h2 class="mb-3 text-lg font-semibold">Itens</h2>
+  <% if (!itens.length) { %>
+    <p class="mb-4 rounded border border-dashed border-[#d4cfc3] bg-white/50 p-4 text-sm text-[#4a5560]">Nenhum item neste pedido.</p>
+  <% } else { %>
+    <div class="mb-4 overflow-x-auto rounded-lg border border-[#d4cfc3] bg-white/70">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-[#1a2332] text-white">
+          <tr>
+            <th class="px-3 py-2">REF</th>
+            <th class="px-3 py-2">Descrição</th>
+            <th class="px-3 py-2">Qtd</th>
+            <th class="px-3 py-2">Unit USD</th>
+            <th class="px-3 py-2">Amount USD</th>
+            <th class="px-3 py-2">NCM</th>
+            <th class="px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% itens.forEach(function(item) { %>
+            <tr class="border-t border-[#d4cfc3] align-top">
+              <td class="px-3 py-2 font-medium"><%= item.referencia %></td>
+              <td class="px-3 py-2 max-w-xs whitespace-normal text-xs"><%= item.descricao || '—' %></td>
+              <td class="px-3 py-2"><%= numberBr(item.quantidade, 0) %></td>
+              <td class="px-3 py-2"><%= numberBr(item.preco_usd, 2) %></td>
+              <td class="px-3 py-2 font-semibold"><%= moneyUsd(item.amount_usd) %></td>
+              <td class="px-3 py-2"><%= item.ncm || '—' %></td>
+              <td class="px-3 py-2 text-right">
+                <form method="POST" action="/pedidos/<%= pedido.id %>/itens/<%= item.id %>?_method=DELETE" onsubmit="return confirm('Remover item?')">
+                  <button type="submit" class="text-red-700 underline">Remover</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<section>
+  <h2 class="mb-3 text-lg font-semibold">Adicionar item</h2>
+  <form method="POST" action="/pedidos/<%= pedido.id %>/itens" class="grid gap-3 rounded-lg border border-[#d4cfc3] bg-white/80 p-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div>
+      <label class="label" for="referencia">REF</label>
+      <input class="field" id="referencia" name="referencia" required placeholder="AC200 ALUMINIO">
+    </div>
+    <div class="sm:col-span-2">
+      <label class="label" for="descricao">Descrição</label>
+      <input class="field" id="descricao" name="descricao">
+    </div>
+    <div>
+      <label class="label" for="quantidade">Quantidade</label>
+      <input class="field" id="quantidade" name="quantidade" type="number" step="any" min="0" value="0" required>
+    </div>
+    <div>
+      <label class="label" for="preco_usd">Unit USD</label>
+      <input class="field" id="preco_usd" name="preco_usd" type="number" step="any" min="0" value="0" required>
+    </div>
+    <div>
+      <label class="label" for="ncm">NCM</label>
+      <input class="field" id="ncm" name="ncm" placeholder="84289090">
+    </div>
+    <div>
+      <label class="label" for="aliq_ii">II (decimal)</label>
+      <input class="field" id="aliq_ii" name="aliq_ii" type="number" step="any" value="0.20">
+    </div>
+    <div>
+      <label class="label" for="aliq_ipi">IPI</label>
+      <input class="field" id="aliq_ipi" name="aliq_ipi" type="number" step="any" value="0">
+    </div>
+    <div>
+      <label class="label" for="aliq_pis">PIS</label>
+      <input class="field" id="aliq_pis" name="aliq_pis" type="number" step="any" value="0.021">
+    </div>
+    <div>
+      <label class="label" for="aliq_cofins">COFINS</label>
+      <input class="field" id="aliq_cofins" name="aliq_cofins" type="number" step="any" value="0.1025">
+    </div>
+    <div>
+      <label class="label" for="aliq_icms">ICMS</label>
+      <input class="field" id="aliq_icms" name="aliq_icms" type="number" step="any" value="0.04">
+    </div>
+    <div class="flex items-end sm:col-span-2 lg:col-span-3">
+      <button type="submit" class="btn btn-primary">Adicionar item</button>
+    </div>
+  </form>
+</section>
+
+<%- include('../partials/footer') %>

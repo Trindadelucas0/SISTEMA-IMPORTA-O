@@ -1,0 +1,167 @@
+<%- include('../partials/header') %>
+
+<section class="mb-4 flex flex-wrap items-start justify-between gap-3">
+  <div>
+    <p class="text-sm text-[#0f6e56]">Desembaraço</p>
+    <h1 class="brand text-3xl font-bold"><%= pedido.codigo %></h1>
+    <p class="mt-1 text-sm text-[#4a5560]">
+      Amarelo = digitação manual (base J e custo L).
+      Custo unitário só quando o pedido estiver coberto pelo saldo (alocações).
+    </p>
+  </div>
+  <div class="flex gap-2">
+    <a href="/saldo" class="btn btn-ghost">Saldo</a>
+    <a href="/pedidos/<%= pedido.id %>" class="btn btn-ghost">Voltar ao pedido</a>
+  </div>
+</section>
+
+<% if (saved) { %>
+  <p class="mb-4 rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900" role="status">Desembaraço salvo e recalculado.</p>
+<% } %>
+
+<% if (!saldo.coberto) { %>
+  <p class="mb-4 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950" role="status">
+    Pedido não quitado no saldo (falta <%= moneyUsd(saldo.falta_usd) %>).
+    Aloque pagamentos em <a class="underline font-semibold" href="/saldo">/saldo</a> antes de fechar o custo.
+  </p>
+<% } %>
+
+<section class="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-3">
+    <p class="text-xs text-[#4a5560]">Invoice</p>
+    <p class="font-bold"><%= moneyUsd(saldo.invoice_usd) %></p>
+  </div>
+  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-3">
+    <p class="text-xs text-[#4a5560]">Alocado</p>
+    <p class="font-bold"><%= moneyUsd(saldo.alocado_usd) %></p>
+  </div>
+  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-3">
+    <p class="text-xs text-[#4a5560]">Falta</p>
+    <p class="font-bold <%= saldo.falta_usd > 0 ? 'text-[#8b2e2e]' : 'text-[#0f6e56]' %>"><%= moneyUsd(saldo.falta_usd) %></p>
+  </div>
+  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-3">
+    <p class="text-xs text-[#4a5560]">Custo produto (alocações)</p>
+    <p class="font-bold"><%= saldo.coberto ? moneyBrl(custoProdutoBrl) : '—' %></p>
+  </div>
+</section>
+
+<form method="POST" action="/desembaraco/<%= pedido.id %>">
+  <section class="mb-4 grid gap-3 rounded-lg border border-[#d4cfc3] bg-white/80 p-4 sm:grid-cols-2">
+    <div>
+      <label class="label" for="custo_desembaraco_total">Custo desembaraço total L (amarelo)</label>
+      <input class="field input-yellow" type="number" step="any" id="custo_desembaraco_total" name="custo_desembaraco_total" value="<%= desembaraco.custo_desembaraco_total %>" <%= saldo.coberto ? '' : 'disabled' %>>
+    </div>
+    <div>
+      <label class="label" for="divisor_bc_icms">Divisor BC ICMS</label>
+      <input class="field" type="number" step="any" id="divisor_bc_icms" name="divisor_bc_icms" value="<%= desembaraco.divisor_bc_icms %>" <%= saldo.coberto ? '' : 'disabled' %>>
+    </div>
+  </section>
+
+  <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <p class="text-sm text-[#4a5560]">
+      Total invoice: <strong><%= moneyUsd(totais.amount_usd) %></strong>
+      · Custo produto R$: <strong><%= saldo.coberto ? moneyBrl(totais.custo_rs) : '—' %></strong>
+      · Impostos: <strong><%= moneyBrl(totais.custo_imposto) %></strong>
+    </p>
+    <button type="submit" class="btn btn-primary" <%= saldo.coberto ? '' : 'disabled' %>>Salvar e recalcular</button>
+  </div>
+
+  <% if (!linhas.length) { %>
+    <p class="rounded border border-dashed border-[#d4cfc3] bg-white/50 p-4 text-sm text-[#4a5560]">Este pedido ainda não tem itens.</p>
+  <% } else { %>
+    <div class="sheet-wrap sheet rounded-lg border border-[#d4cfc3] bg-white/90">
+      <table>
+        <thead>
+          <tr>
+            <th>REF</th>
+            <th>Qtd</th>
+            <th>Unit USD</th>
+            <th>Amount USD</th>
+            <th>%</th>
+            <th>Custo R$</th>
+            <th>Custo unit R$</th>
+            <th>NCM</th>
+            <th class="!bg-[#c9a227]">Base desemb. J</th>
+            <th>II %</th>
+            <th>II valor</th>
+            <th>IPI %</th>
+            <th>IPI valor</th>
+            <th>PIS %</th>
+            <th>PIS R$</th>
+            <th>COFINS %</th>
+            <th>COFINS</th>
+            <th>BC ICMS</th>
+            <th>ICMS %</th>
+            <th>ICMS valor</th>
+            <th>Custo imposto</th>
+            <th>% imposto</th>
+            <th>Outras desp.</th>
+            <th>% s/ Custo unit R$</th>
+            <th>Outras unit</th>
+            <th>Total custo unit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% linhas.forEach(function(linha) { %>
+            <tr>
+              <td title="<%= linha.descricao || '' %>"><%= linha.referencia %></td>
+              <td><%= numberBr(linha.quantidade, 0) %></td>
+              <td><%= numberBr(linha.preco_usd, 2) %></td>
+              <td><%= numberBr(linha.amount_usd, 2) %></td>
+              <td><%= percentBr(linha.pct_rateio) %></td>
+              <td><%= saldo.coberto ? numberBr(linha.custo_rs, 2) : '—' %></td>
+              <td><%= saldo.coberto ? numberBr(linha.custo_unit_rs, 2) : '—' %></td>
+              <td><%= linha.ncm || '—' %></td>
+              <td>
+                <input
+                  class="input-yellow"
+                  type="number"
+                  step="any"
+                  name="base_<%= linha.id %>"
+                  value="<%= linha.base_desembaraco %>"
+                  aria-label="Base desembaraço <%= linha.referencia %>"
+                >
+              </td>
+              <td><%= percentBr(linha.aliq_ii) %></td>
+              <td><%= numberBr(linha.ii_valor, 2) %></td>
+              <td><%= percentBr(linha.aliq_ipi) %></td>
+              <td><%= numberBr(linha.ipi_valor, 2) %></td>
+              <td><%= percentBr(linha.aliq_pis) %></td>
+              <td><%= numberBr(linha.pis_rs, 2) %></td>
+              <td><%= percentBr(linha.aliq_cofins) %></td>
+              <td><%= numberBr(linha.cofins_valor, 2) %></td>
+              <td><%= numberBr(linha.bc_icms, 2) %></td>
+              <td><%= percentBr(linha.aliq_icms) %></td>
+              <td><%= numberBr(linha.valor_icms, 2) %></td>
+              <td><%= numberBr(linha.custo_imposto, 2) %></td>
+              <td><%= saldo.coberto && linha.pct_imposto != null ? percentBr(linha.pct_imposto) : '—' %></td>
+              <td><%= numberBr(linha.outras_despesas, 2) %></td>
+              <td><%= saldo.coberto && linha.pct_outras_despesas != null ? percentBr(linha.pct_outras_despesas) : '—' %></td>
+              <td><%= numberBr(linha.outras_despesas_unit, 2) %></td>
+              <td class="font-semibold"><%= saldo.coberto ? numberBr(linha.total_custo_unit, 2) : '—' %></td>
+            </tr>
+          <% }) %>
+          <tr class="bg-[#e8efe9] font-semibold">
+            <td>TOTAL</td>
+            <td><%= numberBr(totais.quantidade, 0) %></td>
+            <td></td>
+            <td><%= numberBr(totais.amount_usd, 2) %></td>
+            <td>100%</td>
+            <td><%= saldo.coberto ? numberBr(totais.custo_rs, 2) : '—' %></td>
+            <td colspan="14"></td>
+            <td><%= numberBr(totais.custo_imposto, 2) %></td>
+            <td></td>
+            <td><%= numberBr(totais.outras_despesas, 2) %></td>
+            <td colspan="3"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+
+  <div class="mt-4">
+    <button type="submit" class="btn btn-primary" <%= saldo.coberto ? '' : 'disabled' %>>Salvar e recalcular</button>
+  </div>
+</form>
+
+<%- include('../partials/footer') %>

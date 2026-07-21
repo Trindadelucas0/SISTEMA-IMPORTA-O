@@ -1,0 +1,63 @@
+<%- include('../partials/header') %>
+
+<section class="mb-8">
+  <p class="text-sm uppercase tracking-wide text-[#0f6e56]">Controle de importações</p>
+  <h1 class="brand mt-1 text-3xl font-bold sm:text-4xl">Dashboard</h1>
+  <p class="mt-2 max-w-2xl text-[#4a5560]">Pedidos, pagamentos e desembaraço com cálculo automático de impostos.</p>
+</section>
+
+<section class="mb-8 grid gap-4 sm:grid-cols-3">
+  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
+    <p class="text-sm text-[#4a5560]">Pedidos</p>
+    <p class="mt-1 text-2xl font-bold"><%= qtdPedidos %></p>
+  </div>
+  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
+    <p class="text-sm text-[#4a5560]">Pagamentos</p>
+    <p class="mt-1 text-2xl font-bold"><%= qtdPagamentos %></p>
+  </div>
+  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
+    <p class="text-sm text-[#4a5560]">Total pago</p>
+    <p class="mt-1 text-2xl font-bold"><%= moneyBrl(totalBrl) %></p>
+    <p class="text-sm text-[#4a5560]"><%= moneyUsd(totalUsd) %></p>
+  </div>
+</section>
+
+<section>
+  <div class="mb-3 flex items-center justify-between gap-3">
+    <h2 class="text-lg font-semibold">Pedidos recentes</h2>
+    <a href="/pedidos/novo" class="btn btn-primary">Novo pedido</a>
+  </div>
+
+  <% if (!pedidos.length) { %>
+    <p class="rounded-lg border border-dashed border-[#d4cfc3] bg-white/50 p-6 text-[#4a5560]">Nenhum pedido cadastrado ainda.</p>
+  <% } else { %>
+    <div class="overflow-x-auto rounded-lg border border-[#d4cfc3] bg-white/70">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-[#1a2332] text-white">
+          <tr>
+            <th class="px-3 py-2">Código</th>
+            <th class="px-3 py-2">Status</th>
+            <th class="px-3 py-2">Itens</th>
+            <th class="px-3 py-2">Invoice USD</th>
+            <th class="px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% pedidos.forEach(function(p) { %>
+            <tr class="border-t border-[#d4cfc3]">
+              <td class="px-3 py-2 font-semibold"><%= p.codigo %></td>
+              <td class="px-3 py-2"><%= p.status %></td>
+              <td class="px-3 py-2"><%= p.qtd_itens %></td>
+              <td class="px-3 py-2"><%= moneyUsd(p.total_usd) %></td>
+              <td class="px-3 py-2 text-right">
+                <a href="/pedidos/<%= p.id %>" class="text-[#0f6e56] underline">Abrir</a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<%- include('../partials/footer') %>
