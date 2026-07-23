@@ -225,7 +225,7 @@
           <tr>
             <th>Código</th>
             <th>Status</th>
-            <th>Itens</th>
+            <th class="col-hide-sm">Itens</th>
             <th>Invoice USD</th>
             <th></th>
           </tr>
@@ -235,7 +235,7 @@
             <tr>
               <td class="font-semibold"><%= p.codigo %></td>
               <td><span class="badge badge-info"><%= p.status %></span></td>
-              <td class="num"><%= p.qtd_itens %></td>
+              <td class="num col-hide-sm"><%= p.qtd_itens %></td>
               <td class="num"><%= moneyUsd(p.total_usd) %></td>
               <td class="text-right">
                 <a href="/pedidos/<%= p.id %>" class="link-action">Abrir</a>
