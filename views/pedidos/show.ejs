@@ -123,16 +123,17 @@
     <% if (!itens.length) { %>
       <div class="panel-body"><p class="empty-state">Nenhum item neste pedido.</p></div>
     <% } else { %>
+      <p class="table-scroll-hint px-3 pt-2">Deslize a tabela para o lado para ver mais colunas.</p>
       <div class="table-panel" style="border:0;border-radius:0">
         <table>
           <thead>
             <tr>
               <th>REF</th>
-              <th>Descrição</th>
+              <th class="col-hide-sm">Descrição</th>
               <th>Qtd</th>
               <th>Unit USD</th>
               <th>Amount</th>
-              <th>NCM</th>
+              <th class="col-hide-sm">NCM</th>
               <th></th>
             </tr>
           </thead>
@@ -140,11 +141,11 @@
             <% itens.forEach(function(item) { %>
               <tr class="align-top">
                 <td class="font-medium mono"><%= item.referencia %></td>
-                <td class="max-w-xs whitespace-normal text-xs" style="color:var(--muted)"><%= item.descricao || '—' %></td>
+                <td class="max-w-xs whitespace-normal text-xs col-hide-sm" style="color:var(--muted)"><%= item.descricao || '—' %></td>
                 <td class="num"><%= numberBr(item.quantidade, 0) %></td>
                 <td class="num"><%= numberBr(item.preco_usd, 2) %></td>
                 <td class="num font-semibold"><%= moneyUsd(item.amount_usd) %></td>
-                <td class="mono"><%= item.ncm || '—' %></td>
+                <td class="mono col-hide-sm"><%= item.ncm || '—' %></td>
                 <td class="text-right">
                   <form method="POST" action="/pedidos/<%= pedido.id %>/itens/<%= item.id %>?_method=DELETE" onsubmit="return confirm('Remover item?')">
                     <button type="submit" class="link-danger">Remover</button>

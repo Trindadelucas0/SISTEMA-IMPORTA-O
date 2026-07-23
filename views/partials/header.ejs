@@ -789,6 +789,121 @@
     @media (min-width: 768px) {
       .fx-chart-wrap .chart-box { height: 170px; }
     }
+
+    .table-scroll-hint,
+    .sheet-scroll-hint {
+      display: none;
+      margin: 0 0 0.5rem;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    /* —— Mobile / smartphone —— */
+    @media (max-width: 639px) {
+      .app-shell {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+      }
+      .app-main {
+        padding-top: 0.75rem;
+        padding-bottom: 1.25rem;
+      }
+
+      .nav-inner {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        min-height: 0;
+        padding-top: 0.55rem;
+      }
+      .nav-brand {
+        padding: 0 0 0.35rem;
+        font-size: 0.9rem;
+      }
+      .nav-menu {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        margin: 0 -0.75rem;
+        padding: 0 0.75rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.2);
+      }
+      .nav-menu::-webkit-scrollbar { display: none; }
+      .nav-link {
+        flex: 0 0 auto;
+        min-height: 40px;
+        padding: 0.55rem 0.75rem;
+        font-size: 0.8125rem;
+        white-space: nowrap;
+      }
+
+      .btn {
+        min-height: 40px;
+        padding: 0.5rem 0.85rem;
+      }
+      .btn-sm { min-height: 36px; }
+
+      .stat-value {
+        font-size: 0.95rem;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .stat { padding: 0.55rem 0.65rem; }
+      .fx-card-value { font-size: 1rem; }
+      .fx-card { min-height: 0; padding: 0.65rem 0.7rem; }
+
+      .chart-box { height: 140px; }
+      .chart-box-sm { height: 120px; }
+      .fx-chart-wrap .chart-box { height: 130px; }
+
+      .panel-head {
+        flex-wrap: wrap;
+        padding: 0.6rem 0.75rem;
+      }
+      .panel-body { padding: 0.65rem 0.75rem; }
+
+      .table-panel table { font-size: 0.75rem; }
+      .table-panel th,
+      .table-panel td {
+        padding: 0.45rem 0.5rem;
+      }
+
+      .form-section { padding: 0.75rem; }
+      .form-grid-2,
+      .form-grid-3 { grid-template-columns: 1fr; }
+      .form-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+        padding: 0.75rem;
+      }
+      .form-actions .btn { width: 100%; }
+
+      .table-scroll-hint,
+      .sheet-scroll-hint { display: block; }
+
+      .sheet-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .sheet-actions .btn { width: 100%; }
+      .sheet-actions-totals { font-size: 0.7rem; }
+
+      .sheet input[type="text"],
+      .sheet input.field-num {
+        min-height: 36px;
+        min-width: 5rem;
+        font-size: 16px; /* evita zoom iOS */
+        padding: 0.35rem 0.4rem;
+      }
+      .field { font-size: 16px; } /* evita zoom iOS em inputs */
+
+      .toolbar { gap: 0.35rem; }
+      .page-header .toolbar .btn-sm {
+        flex: 1 1 calc(50% - 0.35rem);
+        min-width: calc(50% - 0.35rem);
+      }
+    }
   </style>
 </head>
 <body>

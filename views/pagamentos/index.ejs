@@ -1,11 +1,12 @@
 <%- include('../partials/header') %>
 
-<section class="page-header mb-6 flex flex-wrap items-end justify-between gap-3">
+<section class="page-header mb-4 flex flex-wrap items-end justify-between gap-3">
   <div>
+    <p class="page-eyebrow">Caixa</p>
     <h1 class="page-title">Pagamentos</h1>
-    <p class="page-sub">Saídas de caixa soltas. Alimentam o saldo; pedidos consomem via alocação.</p>
+    <p class="page-sub">Saídas de caixa. Alimentam o saldo; pedidos consomem via alocação.</p>
   </div>
-  <div class="flex gap-2">
+  <div class="toolbar">
     <a href="/saldo" class="btn btn-ghost">Ver saldo</a>
     <a href="/pagamentos/novo" class="btn btn-primary">Novo pagamento</a>
   </div>
@@ -19,7 +20,7 @@
     disponivel_brl: 0,
   };
 %>
-<section class="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+<section class="kpi-grid mb-4">
   <div class="stat">
     <p class="stat-label">Pago USD (total)</p>
     <p class="stat-value"><%= moneyUsd(saldoCards.total_usd) %></p>
@@ -41,40 +42,43 @@
 <% if (!pagamentos.length) { %>
   <p class="empty-state">Nenhum pagamento.</p>
 <% } else { %>
-  <div class="table-panel">
-    <table>
-      <thead>
-        <tr>
-          <th>Data</th>
-          <th>Descrição</th>
-          <th>Tipo</th>
-          <th>USD</th>
-          <th>Dólar dia</th>
-          <th>BRL</th>
-          <th>Disponível USD</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <% pagamentos.forEach(function(pg) { %>
+  <div class="panel">
+    <p class="table-scroll-hint px-3 pt-2">Deslize a tabela para o lado para ver mais colunas.</p>
+    <div class="table-panel" style="border:0;border-radius:0">
+      <table>
+        <thead>
           <tr>
-            <td><%= pg.data_pagamento ? new Date(pg.data_pagamento).toLocaleDateString('pt-BR') : '—' %></td>
-            <td><%= pg.descricao %></td>
-            <td><%= pg.tipo %></td>
-            <td><%= moneyUsd(pg.valor_usd) %></td>
-            <td><%= numberBr(pg.dolar_dia, 4) %></td>
-            <td><%= moneyBrl(pg.valor_brl) %></td>
-            <td><%= moneyUsd(pg.disponivel_usd) %></td>
-            <td class="text-right space-x-2">
-              <a href="/pagamentos/<%= pg.id %>/editar" class="link-action">Editar</a>
-              <form class="inline" method="POST" action="/pagamentos/<%= pg.id %>?_method=DELETE" onsubmit="return confirm('Excluir pagamento e alocações?')">
-                <button type="submit" class="link-danger">Excluir</button>
-              </form>
-            </td>
+            <th>Data</th>
+            <th>Descrição</th>
+            <th class="col-hide-sm">Tipo</th>
+            <th>USD</th>
+            <th class="col-hide-sm">Dólar dia</th>
+            <th class="col-hide-sm">BRL</th>
+            <th class="col-hide-sm">Disponível USD</th>
+            <th></th>
           </tr>
-        <% }) %>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <% pagamentos.forEach(function(pg) { %>
+            <tr>
+              <td><%= pg.data_pagamento ? new Date(pg.data_pagamento).toLocaleDateString('pt-BR') : '—' %></td>
+              <td><%= pg.descricao %></td>
+              <td class="col-hide-sm"><%= pg.tipo %></td>
+              <td class="num"><%= moneyUsd(pg.valor_usd) %></td>
+              <td class="num col-hide-sm"><%= numberBr(pg.dolar_dia, 4) %></td>
+              <td class="num col-hide-sm"><%= moneyBrl(pg.valor_brl) %></td>
+              <td class="num col-hide-sm"><%= moneyUsd(pg.disponivel_usd) %></td>
+              <td class="text-right space-x-2">
+                <a href="/pagamentos/<%= pg.id %>/editar" class="link-action">Editar</a>
+                <form class="inline" method="POST" action="/pagamentos/<%= pg.id %>?_method=DELETE" onsubmit="return confirm('Excluir pagamento e alocações?')">
+                  <button type="submit" class="link-danger">Excluir</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
   </div>
 <% } %>
 

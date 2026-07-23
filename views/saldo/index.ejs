@@ -68,16 +68,17 @@
 
 <section class="panel mb-4">
   <div class="panel-head"><h2>Falta por pedido</h2></div>
+  <p class="table-scroll-hint px-3 pt-2">Deslize a tabela para o lado para ver mais colunas.</p>
   <div class="table-panel" style="border:0;border-radius:0">
     <table>
       <thead>
         <tr>
           <th>Pedido</th>
           <th>Invoice</th>
-          <th>Alocado</th>
+          <th class="col-hide-sm">Alocado</th>
           <th>Falta</th>
           <th>Cobertura</th>
-          <th>Status</th>
+          <th class="col-hide-sm">Status</th>
         </tr>
       </thead>
       <tbody>
@@ -90,9 +91,9 @@
           <tr>
             <td class="font-semibold"><a class="link-action mono" href="/pedidos/<%= p.id %>"><%= p.codigo %></a></td>
             <td class="num"><%= moneyUsd(p.invoice_usd) %></td>
-            <td class="num"><%= moneyUsd(p.alocado_usd) %></td>
+            <td class="num col-hide-sm"><%= moneyUsd(p.alocado_usd) %></td>
             <td class="num <%= p.falta_usd > 0 ? 'text-bad' : 'text-ok' %>"><%= moneyUsd(p.falta_usd) %></td>
-            <td style="min-width:140px">
+            <td style="min-width:120px">
               <div class="mb-1 flex justify-between text-xs" style="color:var(--muted)">
                 <span><%= pct %>%</span>
                 <span class="badge <%= ok ? 'badge-ok' : 'badge-warn' %>"><%= ok ? 'coberto' : 'pendente' %></span>
@@ -101,7 +102,7 @@
                 <span style="width: <%= pct %>%"></span>
               </div>
             </td>
-            <td><%= p.status_fornecedor %></td>
+            <td class="col-hide-sm"><%= p.status_fornecedor %></td>
           </tr>
         <% }) %>
       </tbody>
@@ -112,7 +113,7 @@
 <section class="panel mb-4">
   <div class="panel-head"><h2>Alocação manual</h2></div>
   <div class="panel-body">
-    <form method="POST" action="/saldo/alocar" class="grid max-w-3xl gap-3 sm:grid-cols-4">
+    <form method="POST" action="/saldo/alocar" class="form-grid form-grid-2" style="max-width:48rem">
       <div>
         <label class="label" for="pagamento_id">Pagamento</label>
         <select class="field" id="pagamento_id" name="pagamento_id" required>
@@ -154,8 +155,8 @@
             <th>Pedido</th>
             <th>Pagamento</th>
             <th>USD</th>
-            <th>Dólar</th>
-            <th>BRL</th>
+            <th class="col-hide-sm">Dólar</th>
+            <th class="col-hide-sm">BRL</th>
             <th></th>
           </tr>
         </thead>
@@ -165,8 +166,8 @@
               <td class="mono"><%= a.pedido_codigo %></td>
               <td>#<%= a.pagamento_id %> · <%= a.pagamento_descricao %></td>
               <td class="num"><%= moneyUsd(a.valor_usd) %></td>
-              <td class="num"><%= numberBr(a.dolar_dia, 4) %></td>
-              <td class="num"><%= moneyBrl(a.valor_brl) %></td>
+              <td class="num col-hide-sm"><%= numberBr(a.dolar_dia, 4) %></td>
+              <td class="num col-hide-sm"><%= moneyBrl(a.valor_brl) %></td>
               <td class="text-right">
                 <form method="POST" action="/saldo/alocacoes/<%= a.id %>?_method=DELETE" onsubmit="return confirm('Remover alocação?')">
                   <button type="submit" class="link-danger">Remover</button>
@@ -182,6 +183,7 @@
 
 <section class="panel">
   <div class="panel-head"><h2>Extrato</h2></div>
+  <p class="table-scroll-hint px-3 pt-2">Deslize a tabela para o lado para ver mais colunas.</p>
   <div class="table-panel" style="border:0;border-radius:0">
     <table>
       <thead>
@@ -189,9 +191,9 @@
           <th>Data</th>
           <th>Descrição</th>
           <th>Mov. USD</th>
-          <th>Mov. BRL</th>
+          <th class="col-hide-sm">Mov. BRL</th>
           <th>Saldo USD</th>
-          <th>Saldo BRL</th>
+          <th class="col-hide-sm">Saldo BRL</th>
         </tr>
       </thead>
       <tbody>
@@ -200,9 +202,9 @@
             <td><%= linha.data ? new Date(linha.data).toLocaleDateString('pt-BR') : '—' %></td>
             <td><%= linha.descricao %></td>
             <td class="num <%= linha.movimento_usd < 0 ? 'text-bad' : 'text-ok' %>"><%= moneyUsd(linha.movimento_usd) %></td>
-            <td class="num"><%= moneyBrl(linha.movimento_brl) %></td>
+            <td class="num col-hide-sm"><%= moneyBrl(linha.movimento_brl) %></td>
             <td class="num"><%= moneyUsd(linha.saldo_usd) %></td>
-            <td class="num"><%= moneyBrl(linha.saldo_brl) %></td>
+            <td class="num col-hide-sm"><%= moneyBrl(linha.saldo_brl) %></td>
           </tr>
         <% }) %>
       </tbody>
