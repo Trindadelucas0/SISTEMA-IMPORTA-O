@@ -32,6 +32,27 @@
   const atualizado = c.updatedAt
     ? new Date(c.updatedAt).toLocaleString('pt-BR')
     : null;
+
+  const saldoSafe = (typeof saldo !== 'undefined' && saldo) ? saldo : {
+    disponivel_usd: 0,
+    disponivel_brl: 0,
+    alocado_usd: 0,
+    alocado_brl: 0,
+    total_usd: 0,
+    total_brl: 0,
+  };
+  const kpiSafe = (typeof kpi !== 'undefined' && kpi) ? kpi : {
+    qtdAbertos: 0,
+    qtdCobertos: 0,
+    invoiceTotalUsd: 0,
+    faltaTotalUsd: 0,
+    coberturaMedia: 0,
+    ptaxAsk: null,
+    ptaxPct: null,
+  };
+  const coberturasSafe = (typeof coberturas !== 'undefined' && Array.isArray(coberturas)) ? coberturas : [];
+  const statusLabelsSafe = (typeof statusLabels !== 'undefined' && Array.isArray(statusLabels)) ? statusLabels : [];
+  const statusValuesSafe = (typeof statusValues !== 'undefined' && Array.isArray(statusValues)) ? statusValues : [];
 %>
 
 <section class="page-header flex flex-wrap items-end justify-between gap-3">
@@ -126,29 +147,29 @@
   </div>
   <div class="stat">
     <p class="stat-label">Saldo disponível USD</p>
-    <p class="stat-value"><%= moneyUsd(saldo.disponivel_usd) %></p>
-    <p class="stat-meta"><%= moneyBrl(saldo.disponivel_brl) %> · alocado <%= moneyUsd(saldo.alocado_usd) %></p>
+    <p class="stat-value"><%= moneyUsd(saldoSafe.disponivel_usd) %></p>
+    <p class="stat-meta"><%= moneyBrl(saldoSafe.disponivel_brl) %> · alocado <%= moneyUsd(saldoSafe.alocado_usd) %></p>
   </div>
   <div class="stat">
     <p class="stat-label">Pedidos abertos</p>
-    <p class="stat-value"><%= kpi.qtdAbertos %></p>
-    <p class="stat-meta"><%= kpi.qtdCobertos %> cobertos · média <%= numberBr(kpi.coberturaMedia, 1) %>%</p>
+    <p class="stat-value"><%= kpiSafe.qtdAbertos %></p>
+    <p class="stat-meta"><%= kpiSafe.qtdCobertos %> cobertos · média <%= numberBr(kpiSafe.coberturaMedia, 1) %>%</p>
   </div>
   <div class="stat">
     <p class="stat-label">Invoice total USD</p>
-    <p class="stat-value"><%= moneyUsd(kpi.invoiceTotalUsd) %></p>
+    <p class="stat-value"><%= moneyUsd(kpiSafe.invoiceTotalUsd) %></p>
   </div>
   <div class="stat">
     <p class="stat-label">Falta a cobrir USD</p>
-    <p class="stat-value <%= kpi.faltaTotalUsd > 0 ? 'text-bad' : 'text-ok' %>"><%= moneyUsd(kpi.faltaTotalUsd) %></p>
+    <p class="stat-value <%= kpiSafe.faltaTotalUsd > 0 ? 'text-bad' : 'text-ok' %>"><%= moneyUsd(kpiSafe.faltaTotalUsd) %></p>
   </div>
   <div class="stat">
     <p class="stat-label">PTAX hoje</p>
-    <% if (kpi.ptaxAsk != null) { %>
-      <p class="stat-value"><%= numberBr(kpi.ptaxAsk, 4) %></p>
-      <p class="stat-meta <%= kpi.ptaxPct > 0 ? 'text-ok' : (kpi.ptaxPct < 0 ? 'text-bad' : '') %>">
-        <% if (kpi.ptaxPct != null) { %>
-          <%= kpi.ptaxPct > 0 ? '+' : '' %><%= numberBr(kpi.ptaxPct, 2) %>%
+    <% if (kpiSafe.ptaxAsk != null) { %>
+      <p class="stat-value"><%= numberBr(kpiSafe.ptaxAsk, 4) %></p>
+      <p class="stat-meta <%= kpiSafe.ptaxPct > 0 ? 'text-ok' : (kpiSafe.ptaxPct < 0 ? 'text-bad' : '') %>">
+        <% if (kpiSafe.ptaxPct != null) { %>
+          <%= kpiSafe.ptaxPct > 0 ? '+' : '' %><%= numberBr(kpiSafe.ptaxPct, 2) %>%
         <% } else { %>
           referência BCB
         <% } %>
@@ -177,7 +198,7 @@
       <h2>Pedidos por status</h2>
     </div>
     <div class="panel-body">
-      <% if (!statusLabels.length) { %>
+      <% if (!statusLabelsSafe.length) { %>
         <p class="empty-state">Sem pedidos para agregar.</p>
       <% } else { %>
         <div class="chart-box chart-box-sm">
@@ -193,11 +214,11 @@
     <h2>Cobertura por pedido</h2>
   </div>
   <div class="panel-body">
-    <% if (!coberturas.length) { %>
+    <% if (!coberturasSafe.length) { %>
       <p class="empty-state">Nenhum pedido cadastrado ainda.</p>
     <% } else { %>
       <div class="bar-list">
-        <% coberturas.forEach(function(cov) { %>
+        <% coberturasSafe.forEach(function(cov) { %>
           <div class="bar-row">
             <a class="code link-action" href="/pedidos/<%= cov.id %>"><%= cov.codigo %></a>
             <div class="progress <%= cov.coberto ? 'progress-ok' : (cov.pct > 0 ? 'progress-warn' : '') %>" title="<%= cov.pct %>%">
@@ -251,8 +272,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 (function () {
-  const disponivel = <%= Number(saldo.disponivel_usd) || 0 %>;
-  const alocado = <%= Number(saldo.alocado_usd) || 0 %>;
+  const disponivel = <%= Number(saldoSafe.disponivel_usd) || 0 %>;
+  const alocado = <%= Number(saldoSafe.alocado_usd) || 0 %>;
   const ctxSaldo = document.getElementById('chartSaldo');
   if (ctxSaldo && window.Chart) {
     new Chart(ctxSaldo, {
@@ -285,8 +306,8 @@
     });
   }
 
-  const statusLabels = <%- JSON.stringify(statusLabels) %>;
-  const statusValues = <%- JSON.stringify(statusValues) %>;
+  const statusLabels = <%- JSON.stringify(statusLabelsSafe) %>;
+  const statusValues = <%- JSON.stringify(statusValuesSafe) %>;
   const ctxStatus = document.getElementById('chartStatus');
   if (ctxStatus && window.Chart && statusLabels.length) {
     new Chart(ctxStatus, {
