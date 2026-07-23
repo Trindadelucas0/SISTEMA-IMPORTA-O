@@ -1,79 +1,111 @@
 <%- include('../partials/header') %>
 
-<section class="mb-6 flex flex-wrap items-start justify-between gap-3">
+<%
+  const invoice = Number(saldo.invoice_usd) || 0;
+  const alocado = Number(saldo.alocado_usd) || 0;
+  const falta = Number(saldo.falta_usd) || 0;
+  const coberturaPct = invoice > 0
+    ? Math.min(100, Math.round((alocado / invoice) * 1000) / 10)
+    : (saldo.coberto ? 100 : 0);
+  const badgeClass = saldo.coberto ? 'badge-ok' : (alocado > 0 ? 'badge-warn' : 'badge-danger');
+%>
+
+<section class="page-header mb-4 flex flex-wrap items-start justify-between gap-3">
   <div>
-    <p class="text-sm text-[#0f6e56]">Pedido</p>
-    <h1 class="brand text-3xl font-bold"><%= pedido.codigo %></h1>
-    <p class="mt-1 text-sm text-[#4a5560]">
-      <%= pedido.fornecedor || 'Sem fornecedor' %> · <%= pedido.status %>
-    </p>
+    <p class="page-eyebrow">Pedido</p>
+    <div class="flex flex-wrap items-center gap-2">
+      <h1 class="page-title mono"><%= pedido.codigo %></h1>
+      <span class="badge <%= badgeClass %>"><%= saldo.status_fornecedor || pedido.status %></span>
+      <span class="badge"><%= pedido.status %></span>
+    </div>
+    <p class="page-sub"><%= pedido.fornecedor || 'Sem fornecedor' %></p>
   </div>
-  <div class="flex flex-wrap gap-2">
-    <a href="/pedidos/<%= pedido.id %>/editar" class="btn btn-ghost">Editar</a>
-    <a href="/saldo" class="btn btn-ghost">Saldo / alocar</a>
-    <a href="/pagamentos/novo" class="btn btn-ghost">Novo pagamento</a>
-    <a href="/desembaraco/<%= pedido.id %>" class="btn btn-primary <%= saldo.coberto ? '' : 'opacity-70' %>">Desembaraço</a>
+  <div class="toolbar">
+    <a href="/pedidos/<%= pedido.id %>/editar" class="btn btn-ghost btn-sm">Editar</a>
+    <a href="/saldo" class="btn btn-ghost btn-sm">Saldo</a>
+    <a href="/pagamentos/novo" class="btn btn-ghost btn-sm">Pagamento</a>
+    <a href="/desembaraco/<%= pedido.id %>" class="btn btn-primary btn-sm">Desembaraço</a>
     <form method="POST" action="/pedidos/<%= pedido.id %>?_method=DELETE" onsubmit="return confirm('Excluir pedido e itens?')">
-      <button type="submit" class="btn btn-danger">Excluir</button>
+      <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
     </form>
   </div>
 </section>
 
-<section class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
-    <p class="text-sm text-[#4a5560]">Invoice USD</p>
-    <p class="text-xl font-bold"><%= moneyUsd(saldo.invoice_usd) %></p>
+<section class="coverage-block mb-4">
+  <div class="mb-2 flex flex-wrap items-end justify-between gap-2">
+    <div>
+      <p class="stat-label">Cobertura do invoice</p>
+      <p class="mono mt-1 text-lg font-semibold"><%= coberturaPct %>%</p>
+    </div>
+    <p class="stat-meta mono">
+      Alocado <%= moneyUsd(alocado) %> · Falta <%= moneyUsd(falta) %> · Invoice <%= moneyUsd(invoice) %>
+    </p>
   </div>
-  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
-    <p class="text-sm text-[#4a5560]">Alocado do saldo</p>
-    <p class="text-xl font-bold"><%= moneyUsd(saldo.alocado_usd) %></p>
-    <p class="text-sm text-[#4a5560]"><%= moneyBrl(saldo.alocado_brl) %></p>
+  <div class="progress <%= saldo.coberto ? 'progress-ok' : (coberturaPct > 0 ? 'progress-warn' : '') %>">
+    <span style="width: <%= coberturaPct %>%"></span>
   </div>
-  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
-    <p class="text-sm text-[#4a5560]">Falta (USD)</p>
-    <p class="text-xl font-bold <%= saldo.falta_usd > 0 ? 'text-[#8b2e2e]' : 'text-[#0f6e56]' %>"><%= moneyUsd(saldo.falta_usd) %></p>
-    <p class="text-xs text-[#4a5560]"><%= saldo.status_fornecedor %></p>
+</section>
+
+<section class="kpi-grid mb-4">
+  <div class="stat">
+    <p class="stat-label">Invoice USD</p>
+    <p class="stat-value"><%= moneyUsd(invoice) %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Alocado</p>
+    <p class="stat-value"><%= moneyUsd(alocado) %></p>
+    <p class="stat-meta"><%= moneyBrl(saldo.alocado_brl) %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Falta USD</p>
+    <p class="stat-value <%= falta > 0 ? 'text-bad' : 'text-ok' %>"><%= moneyUsd(falta) %></p>
   </div>
   <% if (desembaraco && desembaraco.custo_total_atual != null) { %>
-    <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
-      <p class="text-sm text-[#4a5560]">Custo total landado</p>
-      <p class="text-xl font-bold"><%= moneyBrl(desembaraco.custo_total_atual) %></p>
+    <div class="stat">
+      <p class="stat-label">Custo landado</p>
+      <p class="stat-value"><%= moneyBrl(desembaraco.custo_total_atual) %></p>
     </div>
   <% } %>
   <% if (custoDelta) { %>
-    <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
-      <p class="text-sm text-[#4a5560]">Variação do custo</p>
+    <div class="stat">
+      <p class="stat-label">Variação do custo</p>
       <% if (custoDelta.aumentou) { %>
-        <p class="text-xl font-bold text-[#8b2e2e]">Aumentou <%= moneyBrl(custoDelta.delta) %></p>
+        <p class="stat-value text-bad">+ <%= moneyBrl(custoDelta.delta) %></p>
       <% } else if (custoDelta.diminuiu) { %>
-        <p class="text-xl font-bold text-[#0f6e56]">Diminuiu <%= moneyBrl(Math.abs(custoDelta.delta)) %></p>
+        <p class="stat-value text-ok">− <%= moneyBrl(Math.abs(custoDelta.delta)) %></p>
       <% } else { %>
-        <p class="text-xl font-bold">Sem variação</p>
+        <p class="stat-value">Sem variação</p>
       <% } %>
     </div>
   <% } %>
 </section>
 
+<% if (!saldo.coberto) { %>
+  <p class="alert alert-warn">
+    Pedido ainda não quitado no saldo. Aloque pagamentos em <a class="link-action" href="/saldo">Saldo</a> antes do desembaraço / custo unitário.
+  </p>
+<% } %>
+
 <% if (alocacoes && alocacoes.length) { %>
-<section class="mb-6">
-  <h2 class="mb-2 text-lg font-semibold">Alocações neste pedido</h2>
-  <div class="overflow-x-auto rounded-lg border border-[#d4cfc3] bg-white/70">
-    <table class="w-full text-left text-sm">
-      <thead class="bg-[#1a2332] text-white">
+<section class="panel mb-4">
+  <div class="panel-head"><h2>Alocações neste pedido</h2></div>
+  <div class="table-panel" style="border:0;border-radius:0">
+    <table>
+      <thead>
         <tr>
-          <th class="px-3 py-2">Pagamento</th>
-          <th class="px-3 py-2">USD</th>
-          <th class="px-3 py-2">Dólar</th>
-          <th class="px-3 py-2">BRL</th>
+          <th>Pagamento</th>
+          <th>USD</th>
+          <th>Dólar</th>
+          <th>BRL</th>
         </tr>
       </thead>
       <tbody>
         <% alocacoes.forEach(function(a) { %>
-          <tr class="border-t border-[#d4cfc3]">
-            <td class="px-3 py-2">#<%= a.pagamento_id %> · <%= a.pagamento_descricao %></td>
-            <td class="px-3 py-2"><%= moneyUsd(a.valor_usd) %></td>
-            <td class="px-3 py-2"><%= numberBr(a.dolar_dia, 4) %></td>
-            <td class="px-3 py-2"><%= moneyBrl(a.valor_brl) %></td>
+          <tr>
+            <td>#<%= a.pagamento_id %> · <%= a.pagamento_descricao %></td>
+            <td class="num"><%= moneyUsd(a.valor_usd) %></td>
+            <td class="num"><%= numberBr(a.dolar_dia, 4) %></td>
+            <td class="num"><%= moneyBrl(a.valor_brl) %></td>
           </tr>
         <% }) %>
       </tbody>
@@ -82,99 +114,120 @@
 </section>
 <% } %>
 
-<% if (!saldo.coberto) { %>
-  <p class="mb-6 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-    Pedido ainda não quitado no saldo. Aloque pagamentos em <a class="underline" href="/saldo">/saldo</a> antes do desembaraço/custo unitário.
-  </p>
-<% } %>
-
-<section class="mb-8">
-  <h2 class="mb-3 text-lg font-semibold">Itens</h2>
-  <% if (!itens.length) { %>
-    <p class="mb-4 rounded border border-dashed border-[#d4cfc3] bg-white/50 p-4 text-sm text-[#4a5560]">Nenhum item neste pedido.</p>
-  <% } else { %>
-    <div class="mb-4 overflow-x-auto rounded-lg border border-[#d4cfc3] bg-white/70">
-      <table class="w-full text-left text-sm">
-        <thead class="bg-[#1a2332] text-white">
-          <tr>
-            <th class="px-3 py-2">REF</th>
-            <th class="px-3 py-2">Descrição</th>
-            <th class="px-3 py-2">Qtd</th>
-            <th class="px-3 py-2">Unit USD</th>
-            <th class="px-3 py-2">Amount USD</th>
-            <th class="px-3 py-2">NCM</th>
-            <th class="px-3 py-2"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <% itens.forEach(function(item) { %>
-            <tr class="border-t border-[#d4cfc3] align-top">
-              <td class="px-3 py-2 font-medium"><%= item.referencia %></td>
-              <td class="px-3 py-2 max-w-xs whitespace-normal text-xs"><%= item.descricao || '—' %></td>
-              <td class="px-3 py-2"><%= numberBr(item.quantidade, 0) %></td>
-              <td class="px-3 py-2"><%= numberBr(item.preco_usd, 2) %></td>
-              <td class="px-3 py-2 font-semibold"><%= moneyUsd(item.amount_usd) %></td>
-              <td class="px-3 py-2"><%= item.ncm || '—' %></td>
-              <td class="px-3 py-2 text-right">
-                <form method="POST" action="/pedidos/<%= pedido.id %>/itens/<%= item.id %>?_method=DELETE" onsubmit="return confirm('Remover item?')">
-                  <button type="submit" class="text-red-700 underline">Remover</button>
-                </form>
-              </td>
+<section class="pedido-layout mb-4">
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Itens do invoice</h2>
+      <span class="badge"><%= itens.length %> item(ns)</span>
+    </div>
+    <% if (!itens.length) { %>
+      <div class="panel-body"><p class="empty-state">Nenhum item neste pedido.</p></div>
+    <% } else { %>
+      <div class="table-panel" style="border:0;border-radius:0">
+        <table>
+          <thead>
+            <tr>
+              <th>REF</th>
+              <th>Descrição</th>
+              <th>Qtd</th>
+              <th>Unit USD</th>
+              <th>Amount</th>
+              <th>NCM</th>
+              <th></th>
             </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-  <% } %>
-</section>
+          </thead>
+          <tbody>
+            <% itens.forEach(function(item) { %>
+              <tr class="align-top">
+                <td class="font-medium mono"><%= item.referencia %></td>
+                <td class="max-w-xs whitespace-normal text-xs" style="color:var(--muted)"><%= item.descricao || '—' %></td>
+                <td class="num"><%= numberBr(item.quantidade, 0) %></td>
+                <td class="num"><%= numberBr(item.preco_usd, 2) %></td>
+                <td class="num font-semibold"><%= moneyUsd(item.amount_usd) %></td>
+                <td class="mono"><%= item.ncm || '—' %></td>
+                <td class="text-right">
+                  <form method="POST" action="/pedidos/<%= pedido.id %>/itens/<%= item.id %>?_method=DELETE" onsubmit="return confirm('Remover item?')">
+                    <button type="submit" class="link-danger">Remover</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
 
-<section>
-  <h2 class="mb-3 text-lg font-semibold">Adicionar item</h2>
-  <form method="POST" action="/pedidos/<%= pedido.id %>/itens" class="grid gap-3 rounded-lg border border-[#d4cfc3] bg-white/80 p-4 sm:grid-cols-2 lg:grid-cols-3">
-    <div>
-      <label class="label" for="referencia">REF</label>
-      <input class="field" id="referencia" name="referencia" required placeholder="AC200 ALUMINIO">
+  <div class="panel form-panel">
+    <div class="panel-head">
+      <h2>Adicionar item</h2>
     </div>
-    <div class="sm:col-span-2">
-      <label class="label" for="descricao">Descrição</label>
-      <input class="field" id="descricao" name="descricao">
-    </div>
-    <div>
-      <label class="label" for="quantidade">Quantidade</label>
-      <input class="field" id="quantidade" name="quantidade" type="number" step="any" min="0" value="0" required>
-    </div>
-    <div>
-      <label class="label" for="preco_usd">Unit USD</label>
-      <input class="field" id="preco_usd" name="preco_usd" type="number" step="any" min="0" value="0" required>
-    </div>
-    <div>
-      <label class="label" for="ncm">NCM</label>
-      <input class="field" id="ncm" name="ncm" placeholder="84289090">
-    </div>
-    <div>
-      <label class="label" for="aliq_ii">II (decimal)</label>
-      <input class="field" id="aliq_ii" name="aliq_ii" type="number" step="any" value="0.20">
-    </div>
-    <div>
-      <label class="label" for="aliq_ipi">IPI</label>
-      <input class="field" id="aliq_ipi" name="aliq_ipi" type="number" step="any" value="0">
-    </div>
-    <div>
-      <label class="label" for="aliq_pis">PIS</label>
-      <input class="field" id="aliq_pis" name="aliq_pis" type="number" step="any" value="0.021">
-    </div>
-    <div>
-      <label class="label" for="aliq_cofins">COFINS</label>
-      <input class="field" id="aliq_cofins" name="aliq_cofins" type="number" step="any" value="0.1025">
-    </div>
-    <div>
-      <label class="label" for="aliq_icms">ICMS</label>
-      <input class="field" id="aliq_icms" name="aliq_icms" type="number" step="any" value="0.04">
-    </div>
-    <div class="flex items-end sm:col-span-2 lg:col-span-3">
-      <button type="submit" class="btn btn-primary">Adicionar item</button>
-    </div>
-  </form>
+    <form method="POST" action="/pedidos/<%= pedido.id %>/itens">
+      <div class="form-section">
+        <h3 class="form-section-title">Produto</h3>
+        <div class="form-grid">
+          <div>
+            <label class="label" for="referencia">REF</label>
+            <input class="field mono" id="referencia" name="referencia" required placeholder="AC200 ALUMINIO" autocomplete="off">
+          </div>
+          <div>
+            <label class="label" for="descricao">Descrição</label>
+            <input class="field" id="descricao" name="descricao" placeholder="Descrição comercial do item">
+          </div>
+          <div>
+            <label class="label" for="ncm">NCM</label>
+            <input class="field mono" id="ncm" name="ncm" placeholder="84289090" inputmode="numeric">
+            <p class="field-hint">8 dígitos, sem pontuação.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3 class="form-section-title">Quantidade e preço</h3>
+        <div class="form-grid form-grid-2">
+          <div>
+            <label class="label" for="quantidade">Quantidade</label>
+            <input class="field field-num" id="quantidade" name="quantidade" type="text" inputmode="decimal" value="0" placeholder="ex: 1.000" required>
+          </div>
+          <div>
+            <label class="label" for="preco_usd">Unit USD</label>
+            <input class="field field-num" id="preco_usd" name="preco_usd" type="text" inputmode="decimal" value="0,00" placeholder="ex: 12,50" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3 class="form-section-title">Alíquotas (decimal)</h3>
+        <div class="form-grid form-grid-2">
+          <div>
+            <label class="label" for="aliq_ii">II</label>
+            <input class="field field-num" id="aliq_ii" name="aliq_ii" type="text" inputmode="decimal" value="0,20" placeholder="0,20">
+          </div>
+          <div>
+            <label class="label" for="aliq_ipi">IPI</label>
+            <input class="field field-num" id="aliq_ipi" name="aliq_ipi" type="text" inputmode="decimal" value="0" placeholder="0,00">
+          </div>
+          <div>
+            <label class="label" for="aliq_pis">PIS</label>
+            <input class="field field-num" id="aliq_pis" name="aliq_pis" type="text" inputmode="decimal" value="0,021" placeholder="0,021">
+          </div>
+          <div>
+            <label class="label" for="aliq_cofins">COFINS</label>
+            <input class="field field-num" id="aliq_cofins" name="aliq_cofins" type="text" inputmode="decimal" value="0,1025" placeholder="0,1025">
+          </div>
+          <div>
+            <label class="label" for="aliq_icms">ICMS</label>
+            <input class="field field-num" id="aliq_icms" name="aliq_icms" type="text" inputmode="decimal" value="0,04" placeholder="0,04">
+          </div>
+        </div>
+        <p class="field-hint" style="margin-top:0.65rem">Use vírgula decimal. Ex.: 20% = 0,20.</p>
+      </div>
+
+      <div class="form-actions form-actions-start">
+        <button type="submit" class="btn btn-primary">Adicionar item</button>
+      </div>
+    </form>
+  </div>
 </section>
 
 <%- include('../partials/footer') %>

@@ -1,9 +1,16 @@
 <%- include('../partials/header') %>
 
-<section class="mb-6 flex flex-wrap items-end justify-between gap-3">
+<%
+  const chartLabels = saldosPedidos.map(function(p) { return p.codigo; });
+  const chartAlocado = saldosPedidos.map(function(p) { return Number(p.alocado_usd) || 0; });
+  const chartFalta = saldosPedidos.map(function(p) { return Number(p.falta_usd) || 0; });
+%>
+
+<section class="page-header mb-4 flex flex-wrap items-end justify-between gap-3">
   <div>
-    <h1 class="brand text-3xl font-bold">Saldo</h1>
-    <p class="mt-1 text-[#4a5560]">Pool único. Pedidos consomem por alocação (FIFO ou manual).</p>
+    <p class="page-eyebrow">Caixa</p>
+    <h1 class="page-title">Saldo</h1>
+    <p class="page-sub">Pool único. Pedidos consomem por alocação (FIFO ou manual).</p>
   </div>
   <form method="POST" action="/saldo/fifo">
     <button type="submit" class="btn btn-primary">Alocar FIFO</button>
@@ -11,52 +18,90 @@
 </section>
 
 <% if (message) { %>
-  <p class="mb-4 rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900"><%= message %></p>
+  <p class="alert alert-success"><%= message %></p>
 <% } %>
 <% if (error) { %>
-  <p class="mb-4 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800"><%= error %></p>
+  <p class="alert alert-error"><%= error %></p>
 <% } %>
 
-<section class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
-    <p class="text-sm text-[#4a5560]">Disponível USD</p>
-    <p class="text-xl font-bold"><%= moneyUsd(saldo.disponivel_usd) %></p>
+<section class="kpi-grid mb-4">
+  <div class="stat">
+    <p class="stat-label">Disponível USD</p>
+    <p class="stat-value"><%= moneyUsd(saldo.disponivel_usd) %></p>
   </div>
-  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
-    <p class="text-sm text-[#4a5560]">Disponível BRL</p>
-    <p class="text-xl font-bold"><%= moneyBrl(saldo.disponivel_brl) %></p>
+  <div class="stat">
+    <p class="stat-label">Disponível BRL</p>
+    <p class="stat-value"><%= moneyBrl(saldo.disponivel_brl) %></p>
   </div>
-  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
-    <p class="text-sm text-[#4a5560]">Já alocado USD</p>
-    <p class="text-xl font-bold"><%= moneyUsd(saldo.alocado_usd) %></p>
+  <div class="stat">
+    <p class="stat-label">Já alocado USD</p>
+    <p class="stat-value"><%= moneyUsd(saldo.alocado_usd) %></p>
   </div>
-  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
-    <p class="text-sm text-[#4a5560]">Já alocado BRL</p>
-    <p class="text-xl font-bold"><%= moneyBrl(saldo.alocado_brl) %></p>
+  <div class="stat">
+    <p class="stat-label">Já alocado BRL</p>
+    <p class="stat-value"><%= moneyBrl(saldo.alocado_brl) %></p>
   </div>
 </section>
 
-<section class="mb-8">
-  <h2 class="mb-3 text-lg font-semibold">Falta por pedido</h2>
-  <div class="overflow-x-auto rounded-lg border border-[#d4cfc3] bg-white/70">
-    <table class="w-full text-left text-sm">
-      <thead class="bg-[#1a2332] text-white">
+<section class="dash-grid mb-4">
+  <div class="panel">
+    <div class="panel-head"><h2>Composição do pool (USD)</h2></div>
+    <div class="panel-body">
+      <div class="chart-box">
+        <canvas id="chartPool" aria-label="Composição do saldo"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h2>Cobertura por pedido (USD)</h2></div>
+    <div class="panel-body">
+      <% if (!saldosPedidos.length) { %>
+        <p class="empty-state">Sem pedidos.</p>
+      <% } else { %>
+        <div class="chart-box">
+          <canvas id="chartCobertura" aria-label="Cobertura por pedido"></canvas>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</section>
+
+<section class="panel mb-4">
+  <div class="panel-head"><h2>Falta por pedido</h2></div>
+  <div class="table-panel" style="border:0;border-radius:0">
+    <table>
+      <thead>
         <tr>
-          <th class="px-3 py-2">Pedido</th>
-          <th class="px-3 py-2">Invoice</th>
-          <th class="px-3 py-2">Alocado</th>
-          <th class="px-3 py-2">Falta</th>
-          <th class="px-3 py-2">Status</th>
+          <th>Pedido</th>
+          <th>Invoice</th>
+          <th>Alocado</th>
+          <th>Falta</th>
+          <th>Cobertura</th>
+          <th>Status</th>
         </tr>
       </thead>
       <tbody>
-        <% saldosPedidos.forEach(function(p) { %>
-          <tr class="border-t border-[#d4cfc3]">
-            <td class="px-3 py-2 font-semibold"><a class="text-[#0f6e56] underline" href="/pedidos/<%= p.id %>"><%= p.codigo %></a></td>
-            <td class="px-3 py-2"><%= moneyUsd(p.invoice_usd) %></td>
-            <td class="px-3 py-2"><%= moneyUsd(p.alocado_usd) %></td>
-            <td class="px-3 py-2 <%= p.falta_usd > 0 ? 'text-[#8b2e2e]' : 'text-[#0f6e56]' %>"><%= moneyUsd(p.falta_usd) %></td>
-            <td class="px-3 py-2"><%= p.status_fornecedor %></td>
+        <% saldosPedidos.forEach(function(p) {
+          const inv = Number(p.invoice_usd) || 0;
+          const al = Number(p.alocado_usd) || 0;
+          const pct = inv > 0 ? Math.min(100, Math.round((al / inv) * 1000) / 10) : (p.falta_usd <= 0 ? 100 : 0);
+          const ok = Number(p.falta_usd) <= 0;
+        %>
+          <tr>
+            <td class="font-semibold"><a class="link-action mono" href="/pedidos/<%= p.id %>"><%= p.codigo %></a></td>
+            <td class="num"><%= moneyUsd(p.invoice_usd) %></td>
+            <td class="num"><%= moneyUsd(p.alocado_usd) %></td>
+            <td class="num <%= p.falta_usd > 0 ? 'text-bad' : 'text-ok' %>"><%= moneyUsd(p.falta_usd) %></td>
+            <td style="min-width:140px">
+              <div class="mb-1 flex justify-between text-xs" style="color:var(--muted)">
+                <span><%= pct %>%</span>
+                <span class="badge <%= ok ? 'badge-ok' : 'badge-warn' %>"><%= ok ? 'coberto' : 'pendente' %></span>
+              </div>
+              <div class="progress <%= ok ? 'progress-ok' : 'progress-warn' %>">
+                <span style="width: <%= pct %>%"></span>
+              </div>
+            </td>
+            <td><%= p.status_fornecedor %></td>
           </tr>
         <% }) %>
       </tbody>
@@ -64,65 +109,67 @@
   </div>
 </section>
 
-<section class="mb-8">
-  <h2 class="mb-3 text-lg font-semibold">Alocação manual</h2>
-  <form method="POST" action="/saldo/alocar" class="grid max-w-3xl gap-3 rounded-lg border border-[#d4cfc3] bg-white/80 p-4 sm:grid-cols-4">
-    <div>
-      <label class="label" for="pagamento_id">Pagamento</label>
-      <select class="field" id="pagamento_id" name="pagamento_id" required>
-        <option value="">Selecione</option>
-        <% pagamentos.forEach(function(pg) { %>
-          <option value="<%= pg.id %>">#<%= pg.id %> · <%= moneyUsd(pg.disponivel_usd) %> disp · <%= numberBr(pg.dolar_dia, 4) %></option>
-        <% }) %>
-      </select>
-    </div>
-    <div>
-      <label class="label" for="pedido_id">Pedido</label>
-      <select class="field" id="pedido_id" name="pedido_id" required>
-        <option value="">Selecione</option>
-        <% pedidos.forEach(function(p) { %>
-          <option value="<%= p.id %>"><%= p.codigo %></option>
-        <% }) %>
-      </select>
-    </div>
-    <div>
-      <label class="label" for="valor_usd">USD a alocar</label>
-      <input class="field" type="number" step="any" id="valor_usd" name="valor_usd" required>
-    </div>
-    <div class="flex items-end">
-      <button type="submit" class="btn btn-primary w-full">Alocar</button>
-    </div>
-  </form>
+<section class="panel mb-4">
+  <div class="panel-head"><h2>Alocação manual</h2></div>
+  <div class="panel-body">
+    <form method="POST" action="/saldo/alocar" class="grid max-w-3xl gap-3 sm:grid-cols-4">
+      <div>
+        <label class="label" for="pagamento_id">Pagamento</label>
+        <select class="field" id="pagamento_id" name="pagamento_id" required>
+          <option value="">Selecione</option>
+          <% pagamentos.forEach(function(pg) { %>
+            <option value="<%= pg.id %>">#<%= pg.id %> · <%= moneyUsd(pg.disponivel_usd) %> disp · <%= numberBr(pg.dolar_dia, 4) %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="label" for="pedido_id">Pedido</label>
+        <select class="field" id="pedido_id" name="pedido_id" required>
+          <option value="">Selecione</option>
+          <% pedidos.forEach(function(p) { %>
+            <option value="<%= p.id %>"><%= p.codigo %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="label" for="valor_usd">USD a alocar</label>
+        <input class="field field-num" type="text" inputmode="decimal" id="valor_usd" name="valor_usd" placeholder="ex: 1.000,00" required>
+      </div>
+      <div class="flex items-end">
+        <button type="submit" class="btn btn-primary w-full">Alocar</button>
+      </div>
+    </form>
+  </div>
 </section>
 
-<section class="mb-8">
-  <h2 class="mb-3 text-lg font-semibold">Alocações</h2>
+<section class="panel mb-4">
+  <div class="panel-head"><h2>Alocações</h2></div>
   <% if (!alocacoes.length) { %>
-    <p class="text-sm text-[#4a5560]">Nenhuma alocação ainda.</p>
+    <div class="panel-body"><p class="page-sub mt-0">Nenhuma alocação ainda.</p></div>
   <% } else { %>
-    <div class="overflow-x-auto rounded-lg border border-[#d4cfc3] bg-white/70">
-      <table class="w-full text-left text-sm">
-        <thead class="bg-[#1a2332] text-white">
+    <div class="table-panel" style="border:0;border-radius:0">
+      <table>
+        <thead>
           <tr>
-            <th class="px-3 py-2">Pedido</th>
-            <th class="px-3 py-2">Pagamento</th>
-            <th class="px-3 py-2">USD</th>
-            <th class="px-3 py-2">Dólar</th>
-            <th class="px-3 py-2">BRL</th>
-            <th class="px-3 py-2"></th>
+            <th>Pedido</th>
+            <th>Pagamento</th>
+            <th>USD</th>
+            <th>Dólar</th>
+            <th>BRL</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
           <% alocacoes.forEach(function(a) { %>
-            <tr class="border-t border-[#d4cfc3]">
-              <td class="px-3 py-2"><%= a.pedido_codigo %></td>
-              <td class="px-3 py-2">#<%= a.pagamento_id %> · <%= a.pagamento_descricao %></td>
-              <td class="px-3 py-2"><%= moneyUsd(a.valor_usd) %></td>
-              <td class="px-3 py-2"><%= numberBr(a.dolar_dia, 4) %></td>
-              <td class="px-3 py-2"><%= moneyBrl(a.valor_brl) %></td>
-              <td class="px-3 py-2 text-right">
+            <tr>
+              <td class="mono"><%= a.pedido_codigo %></td>
+              <td>#<%= a.pagamento_id %> · <%= a.pagamento_descricao %></td>
+              <td class="num"><%= moneyUsd(a.valor_usd) %></td>
+              <td class="num"><%= numberBr(a.dolar_dia, 4) %></td>
+              <td class="num"><%= moneyBrl(a.valor_brl) %></td>
+              <td class="text-right">
                 <form method="POST" action="/saldo/alocacoes/<%= a.id %>?_method=DELETE" onsubmit="return confirm('Remover alocação?')">
-                  <button type="submit" class="text-red-700 underline">Remover</button>
+                  <button type="submit" class="link-danger">Remover</button>
                 </form>
               </td>
             </tr>
@@ -133,34 +180,93 @@
   <% } %>
 </section>
 
-<section>
-  <h2 class="mb-3 text-lg font-semibold">Extrato</h2>
-  <div class="overflow-x-auto rounded-lg border border-[#d4cfc3] bg-white/70">
-    <table class="w-full text-left text-sm">
-      <thead class="bg-[#1a2332] text-white">
+<section class="panel">
+  <div class="panel-head"><h2>Extrato</h2></div>
+  <div class="table-panel" style="border:0;border-radius:0">
+    <table>
+      <thead>
         <tr>
-          <th class="px-3 py-2">Data</th>
-          <th class="px-3 py-2">Descrição</th>
-          <th class="px-3 py-2">Mov. USD</th>
-          <th class="px-3 py-2">Mov. BRL</th>
-          <th class="px-3 py-2">Saldo USD</th>
-          <th class="px-3 py-2">Saldo BRL</th>
+          <th>Data</th>
+          <th>Descrição</th>
+          <th>Mov. USD</th>
+          <th>Mov. BRL</th>
+          <th>Saldo USD</th>
+          <th>Saldo BRL</th>
         </tr>
       </thead>
       <tbody>
         <% extrato.forEach(function(linha) { %>
-          <tr class="border-t border-[#d4cfc3]">
-            <td class="px-3 py-2"><%= linha.data ? new Date(linha.data).toLocaleDateString('pt-BR') : '—' %></td>
-            <td class="px-3 py-2"><%= linha.descricao %></td>
-            <td class="px-3 py-2 <%= linha.movimento_usd < 0 ? 'text-[#8b2e2e]' : 'text-[#0f6e56]' %>"><%= moneyUsd(linha.movimento_usd) %></td>
-            <td class="px-3 py-2"><%= moneyBrl(linha.movimento_brl) %></td>
-            <td class="px-3 py-2"><%= moneyUsd(linha.saldo_usd) %></td>
-            <td class="px-3 py-2"><%= moneyBrl(linha.saldo_brl) %></td>
+          <tr>
+            <td><%= linha.data ? new Date(linha.data).toLocaleDateString('pt-BR') : '—' %></td>
+            <td><%= linha.descricao %></td>
+            <td class="num <%= linha.movimento_usd < 0 ? 'text-bad' : 'text-ok' %>"><%= moneyUsd(linha.movimento_usd) %></td>
+            <td class="num"><%= moneyBrl(linha.movimento_brl) %></td>
+            <td class="num"><%= moneyUsd(linha.saldo_usd) %></td>
+            <td class="num"><%= moneyBrl(linha.saldo_brl) %></td>
           </tr>
         <% }) %>
       </tbody>
     </table>
   </div>
 </section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  if (!window.Chart) return;
+  const disponivel = <%= Number(saldo.disponivel_usd) || 0 %>;
+  const alocado = <%= Number(saldo.alocado_usd) || 0 %>;
+  const pool = document.getElementById('chartPool');
+  if (pool) {
+    new Chart(pool, {
+      type: 'doughnut',
+      data: {
+        labels: ['Disponível', 'Alocado'],
+        datasets: [{
+          data: [disponivel, alocado],
+          backgroundColor: ['#1B4F9C', '#94A3B8'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'IBM Plex Sans', size: 12 } } }
+        }
+      }
+    });
+  }
+
+  const labels = <%- JSON.stringify(chartLabels) %>;
+  const alocados = <%- JSON.stringify(chartAlocado) %>;
+  const faltas = <%- JSON.stringify(chartFalta) %>;
+  const cob = document.getElementById('chartCobertura');
+  if (cob && labels.length) {
+    new Chart(cob, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'Alocado', data: alocados, backgroundColor: '#1B4F9C', borderRadius: 2, maxBarThickness: 28 },
+          { label: 'Falta', data: faltas, backgroundColor: '#FDB022', borderRadius: 2, maxBarThickness: 28 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'IBM Plex Sans', size: 11 } } }
+        },
+        scales: {
+          x: { stacked: true, grid: { display: false }, ticks: { font: { family: 'IBM Plex Sans', size: 11 } } },
+          y: { stacked: true, beginAtZero: true, grid: { color: '#ECEEF2' }, ticks: { font: { family: 'IBM Plex Sans', size: 11 } } }
+        }
+      }
+    });
+  }
+})();
+</script>
 
 <%- include('../partials/footer') %>

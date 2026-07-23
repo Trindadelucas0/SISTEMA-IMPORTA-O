@@ -1,45 +1,126 @@
 <%- include('../partials/header') %>
 
-<section class="mb-6 flex flex-wrap items-end justify-between gap-3">
+<%
+  const chartLabels = (pedidosAbertos || []).map(function(p) { return p.codigo; });
+  const chartAlocado = (pedidosAbertos || []).map(function(p) { return Number(p.alocado_usd) || 0; });
+  const chartFalta = (pedidosAbertos || []).map(function(p) { return Number(p.falta_usd) || 0; });
+%>
+
+<section class="page-header mb-4 flex flex-wrap items-end justify-between gap-3">
   <div>
-    <h1 class="brand text-3xl font-bold">Pedidos</h1>
-    <p class="mt-1 text-[#4a5560]">Cadastro de importações e itens do invoice.</p>
+    <p class="page-eyebrow">Cadastro</p>
+    <h1 class="page-title">Pedidos</h1>
+    <p class="page-sub">Importações e preenchimento de pagamento nos abertos.</p>
   </div>
   <a href="/pedidos/novo" class="btn btn-primary">Novo pedido</a>
 </section>
 
 <% if (!pedidos.length) { %>
-  <p class="rounded-lg border border-dashed border-[#d4cfc3] bg-white/50 p-6 text-[#4a5560]">Nenhum pedido. Crie o primeiro.</p>
+  <p class="empty-state">Nenhum pedido. Crie o primeiro.</p>
 <% } else { %>
-  <div class="overflow-x-auto rounded-lg border border-[#d4cfc3] bg-white/70">
-    <table class="w-full text-left text-sm">
-      <thead class="bg-[#1a2332] text-white">
-        <tr>
-          <th class="px-3 py-2">Código</th>
-          <th class="px-3 py-2">Fornecedor</th>
-          <th class="px-3 py-2">Status</th>
-          <th class="px-3 py-2">Itens</th>
-          <th class="px-3 py-2">Total USD</th>
-          <th class="px-3 py-2"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <% pedidos.forEach(function(p) { %>
-          <tr class="border-t border-[#d4cfc3]">
-            <td class="px-3 py-2 font-semibold"><%= p.codigo %></td>
-            <td class="px-3 py-2"><%= p.fornecedor || '—' %></td>
-            <td class="px-3 py-2"><%= p.status %></td>
-            <td class="px-3 py-2"><%= p.qtd_itens %></td>
-            <td class="px-3 py-2"><%= moneyUsd(p.total_usd) %></td>
-            <td class="px-3 py-2 text-right space-x-2">
-              <a href="/pedidos/<%= p.id %>" class="text-[#0f6e56] underline">Detalhe</a>
-              <a href="/desembaraco/<%= p.id %>" class="text-[#0f6e56] underline">Desembaraço</a>
-            </td>
+
+  <section class="panel mb-4">
+    <div class="panel-head">
+      <h2>Preenchimento dos pedidos abertos</h2>
+      <span class="badge badge-info"><%= (pedidosAbertos || []).length %> aberto(s)</span>
+    </div>
+    <div class="panel-body">
+      <% if (!(pedidosAbertos || []).length) { %>
+        <p class="empty-state">Nenhum pedido aberto (todos fechados).</p>
+      <% } else { %>
+        <div class="chart-box">
+          <canvas id="chartPedidosAbertos" aria-label="Preenchimento dos pedidos abertos"></canvas>
+        </div>
+      <% } %>
+    </div>
+  </section>
+
+  <div class="panel">
+    <div class="table-panel" style="border:0;border-radius:0">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th class="col-hide-sm">Fornecedor</th>
+            <th>Status</th>
+            <th class="col-hide-sm">Itens</th>
+            <th>Total USD</th>
+            <th>Preenchimento</th>
+            <th></th>
           </tr>
-        <% }) %>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <% pedidos.forEach(function(p) { %>
+            <tr>
+              <td class="font-semibold mono"><%= p.codigo %></td>
+              <td class="col-hide-sm"><%= p.fornecedor || '—' %></td>
+              <td><span class="badge badge-info"><%= p.status %></span></td>
+              <td class="num col-hide-sm"><%= p.qtd_itens %></td>
+              <td class="num"><%= moneyUsd(p.total_usd != null ? p.total_usd : p.invoice_usd) %></td>
+              <td class="fill-cell">
+                <div class="mb-1 flex flex-wrap items-center justify-between gap-1 text-xs" style="color:var(--muted)">
+                  <span class="mono"><%= p.pct %>%</span>
+                  <span class="badge <%= p.coberto ? 'badge-ok' : (p.pct > 0 ? 'badge-warn' : 'badge-danger') %>">
+                    <%= p.coberto ? 'coberto' : 'falta ' + moneyUsd(p.falta_usd) %>
+                  </span>
+                </div>
+                <div class="progress <%= p.coberto ? 'progress-ok' : (p.pct > 0 ? 'progress-warn' : '') %>">
+                  <span style="width: <%= p.pct %>%"></span>
+                </div>
+              </td>
+              <td class="text-right space-x-2">
+                <a href="/pedidos/<%= p.id %>" class="link-action">Detalhe</a>
+                <a href="/desembaraco/<%= p.id %>" class="link-action col-hide-sm">Desembaraço</a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
   </div>
+<% } %>
+
+<% if ((pedidosAbertos || []).length) { %>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  if (!window.Chart) return;
+  const labels = <%- JSON.stringify(chartLabels) %>;
+  const alocados = <%- JSON.stringify(chartAlocado) %>;
+  const faltas = <%- JSON.stringify(chartFalta) %>;
+  const el = document.getElementById('chartPedidosAbertos');
+  if (!el || !labels.length) return;
+  new Chart(el, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Alocado', data: alocados, backgroundColor: '#1B4F9C', borderRadius: 2, maxBarThickness: 28 },
+        { label: 'Falta', data: faltas, backgroundColor: '#FDB022', borderRadius: 2, maxBarThickness: 28 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'IBM Plex Sans', size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: function (ctx) {
+              const v = ctx.parsed.y || 0;
+              return ' ' + ctx.dataset.label + ': US$ ' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+          }
+        }
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { font: { family: 'IBM Plex Sans', size: 11 } } },
+        y: { stacked: true, beginAtZero: true, grid: { color: '#ECEEF2' }, ticks: { font: { family: 'IBM Plex Sans', size: 11 } } }
+      }
+    }
+  });
+})();
+</script>
 <% } %>
 
 <%- include('../partials/footer') %>

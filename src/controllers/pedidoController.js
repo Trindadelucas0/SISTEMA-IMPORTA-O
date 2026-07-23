@@ -9,7 +9,32 @@ const STATUS = ['aberta', 'em_transito', 'desembarcada', 'fechada'];
 async function listar(req, res, next) {
   try {
     const pedidos = await Pedido.listar();
-    res.render('pedidos/index', { title: 'Pedidos', pedidos });
+    const pedidosComSaldo = [];
+    for (const p of pedidos) {
+      const s = await saldoService.saldoPedido(p.id);
+      const invoice = Number(s.invoice_usd) || 0;
+      const alocado = Number(s.alocado_usd) || 0;
+      const falta = Number(s.falta_usd) || 0;
+      const pct = invoice > 0
+        ? Math.min(100, Math.round((alocado / invoice) * 1000) / 10)
+        : s.coberto ? 100 : 0;
+      pedidosComSaldo.push({
+        ...p,
+        invoice_usd: invoice,
+        alocado_usd: alocado,
+        falta_usd: falta,
+        pct,
+        coberto: !!s.coberto,
+        status_fornecedor: s.status_fornecedor,
+      });
+    }
+    const pedidosAbertos = pedidosComSaldo.filter((p) => p.status !== 'fechada');
+
+    res.render('pedidos/index', {
+      title: 'Pedidos',
+      pedidos: pedidosComSaldo,
+      pedidosAbertos,
+    });
   } catch (err) {
     next(err);
   }

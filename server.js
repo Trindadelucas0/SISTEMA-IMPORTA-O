@@ -10,7 +10,7 @@ const pedidosRoutes = require('./src/routes/pedidos');
 const pagamentosRoutes = require('./src/routes/pagamentos');
 const desembaracoRoutes = require('./src/routes/desembaraco');
 const { notFound, errorHandler } = require('./src/middlewares/errorHandler');
-const { moneyBrl, moneyUsd, numberBr, percentBr } = require('./src/utils/format');
+const { moneyBrl, moneyUsd, numberBr, percentBr, formatInputBr } = require('./src/utils/format');
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -22,6 +22,7 @@ app.locals.moneyBrl = moneyBrl;
 app.locals.moneyUsd = moneyUsd;
 app.locals.numberBr = numberBr;
 app.locals.percentBr = percentBr;
+app.locals.formatInputBr = formatInputBr;
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());

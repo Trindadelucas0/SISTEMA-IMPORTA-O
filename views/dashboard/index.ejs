@@ -1,56 +1,244 @@
 <%- include('../partials/header') %>
 
-<section class="mb-8">
-  <p class="text-sm uppercase tracking-wide text-[#0f6e56]">Controle de importações</p>
-  <h1 class="brand mt-1 text-3xl font-bold sm:text-4xl">Dashboard</h1>
-  <p class="mt-2 max-w-2xl text-[#4a5560]">Pedidos, pagamentos e desembaraço com cálculo automático de impostos.</p>
-</section>
+<%
+  function fxNum(v, digits) {
+    if (v == null || !Number.isFinite(Number(v))) return '—';
+    return numberBr(v, digits == null ? 4 : digits);
+  }
+  function fxChgClass(pct) {
+    if (pct == null || !Number.isFinite(Number(pct))) return 'fx-chg-flat';
+    if (Number(pct) > 0) return 'fx-chg-up';
+    if (Number(pct) < 0) return 'fx-chg-down';
+    return 'fx-chg-flat';
+  }
+  function fxChgText(pct) {
+    if (pct == null || !Number.isFinite(Number(pct))) return 'sem variação';
+    const n = Number(pct);
+    const sign = n > 0 ? '+' : '';
+    return sign + numberBr(n, 2) + '%';
+  }
+  const c = typeof cotacoes !== 'undefined' && cotacoes ? cotacoes : { ok: false, comercial: null, turismo: null, ptax: null, historico: [] };
+  const comercial = c.comercial;
+  const turismo = c.turismo;
+  const ptax = c.ptax;
+  const histBids = (c.historico || []).map(function (h) { return h.bid; });
+  const histLabels = (c.historico || []).map(function (h, i) {
+    if (h.createDate) {
+      const d = new Date(h.createDate.replace(' ', 'T'));
+      if (!isNaN(d.getTime())) return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    }
+    return String(i + 1);
+  });
+  const atualizado = c.updatedAt
+    ? new Date(c.updatedAt).toLocaleString('pt-BR')
+    : null;
+%>
 
-<section class="mb-8 grid gap-4 sm:grid-cols-3">
-  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
-    <p class="text-sm text-[#4a5560]">Pedidos</p>
-    <p class="mt-1 text-2xl font-bold"><%= qtdPedidos %></p>
+<section class="page-header flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <p class="page-eyebrow">Operação</p>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-sub">Caixa, cobertura de pedidos e câmbio USD/BRL em tempo real.</p>
   </div>
-  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
-    <p class="text-sm text-[#4a5560]">Pagamentos</p>
-    <p class="mt-1 text-2xl font-bold"><%= qtdPagamentos %></p>
-  </div>
-  <div class="rounded-lg border border-[#d4cfc3] bg-white/70 p-4">
-    <p class="text-sm text-[#4a5560]">Total pago</p>
-    <p class="mt-1 text-2xl font-bold"><%= moneyBrl(totalBrl) %></p>
-    <p class="text-sm text-[#4a5560]"><%= moneyUsd(totalUsd) %></p>
-  </div>
-</section>
-
-<section>
-  <div class="mb-3 flex items-center justify-between gap-3">
-    <h2 class="text-lg font-semibold">Pedidos recentes</h2>
+  <div class="toolbar">
+    <a href="/pagamentos/novo" class="btn btn-ghost">Novo pagamento</a>
     <a href="/pedidos/novo" class="btn btn-primary">Novo pedido</a>
   </div>
+</section>
 
+<section class="fx-panel mb-4">
+  <div class="panel-head">
+    <h2>Câmbio USD / BRL</h2>
+    <div class="fx-meta text-right">
+      <% if (c.ok === false && c.error) { %>
+        Indisponível agora
+      <% } else { %>
+        Atualizado <%= atualizado || '—' %><% if (c.stale) { %> · cache<% } %>
+      <% } %>
+    </div>
+  </div>
+  <div class="panel-body">
+    <% if (c.ok === false && !comercial && !ptax) { %>
+      <p class="empty-state" style="background:rgba(255,255,255,0.04);border-color:rgba(148,163,184,0.3);color:#CBD5E1">
+        Não foi possível carregar cotações. <%= c.error || '' %>
+      </p>
+    <% } else { %>
+      <div class="fx-layout">
+        <div>
+          <div class="fx-grid mb-3">
+            <div class="fx-card">
+              <p class="fx-card-label">Comercial · venda</p>
+              <p class="fx-card-value"><%= fxNum(comercial && comercial.ask) %></p>
+              <p class="fx-card-sub">compra <%= fxNum(comercial && comercial.bid) %></p>
+              <p class="fx-chg <%= fxChgClass(comercial && comercial.pctChange) %>"><%= fxChgText(comercial && comercial.pctChange) %></p>
+            </div>
+            <div class="fx-card">
+              <p class="fx-card-label">PTAX · referência BCB</p>
+              <p class="fx-card-value"><%= fxNum(ptax && ptax.ask) %></p>
+              <p class="fx-card-sub">compra <%= fxNum(ptax && ptax.bid) %></p>
+              <p class="fx-chg <%= fxChgClass(ptax && ptax.pctChange) %>"><%= fxChgText(ptax && ptax.pctChange) %></p>
+            </div>
+            <div class="fx-card">
+              <p class="fx-card-label">Turismo · venda</p>
+              <p class="fx-card-value"><%= fxNum(turismo && turismo.ask) %></p>
+              <p class="fx-card-sub">compra <%= fxNum(turismo && turismo.bid) %></p>
+              <p class="fx-chg <%= fxChgClass(turismo && turismo.pctChange) %>"><%= fxChgText(turismo && turismo.pctChange) %></p>
+            </div>
+            <div class="fx-card">
+              <p class="fx-card-label">Amplitude do dia</p>
+              <p class="fx-card-value"><%= fxNum(comercial && comercial.high) %></p>
+              <p class="fx-card-sub">mín <%= fxNum(comercial && comercial.low) %></p>
+              <p class="fx-card-sub" style="margin-top:0.45rem;font-family:inherit;letter-spacing:0">
+                Futuro BM&amp;F: consulte B3 / corretora
+              </p>
+            </div>
+          </div>
+          <p class="fx-meta">Fonte: <%= c.source || 'mercado' %>. PTAX oficial do dia; comercial e turismo são referências de mercado (não são cotação de contrato futuro).</p>
+        </div>
+        <div class="fx-chart-wrap">
+          <p class="fx-card-label" style="margin-bottom:0.4rem">Tendência · últimos pregões (compra)</p>
+          <% if (histBids.length > 1) { %>
+            <div class="chart-box">
+              <canvas id="chartFx" aria-label="Histórico do dólar"></canvas>
+            </div>
+          <% } else { %>
+            <p class="fx-meta" style="padding:1rem 0">Histórico indisponível no momento.</p>
+          <% } %>
+        </div>
+      </div>
+    <% } %>
+  </div>
+</section>
+
+<section class="kpi-grid mb-4">
+  <div class="stat">
+    <p class="stat-label">Pedidos</p>
+    <p class="stat-value"><%= qtdPedidos %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Pagamentos</p>
+    <p class="stat-value"><%= qtdPagamentos %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Total pago BRL</p>
+    <p class="stat-value"><%= moneyBrl(totalBrl) %></p>
+    <p class="stat-meta mono"><%= moneyUsd(totalUsd) %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Saldo disponível USD</p>
+    <p class="stat-value"><%= moneyUsd(saldo.disponivel_usd) %></p>
+    <p class="stat-meta"><%= moneyBrl(saldo.disponivel_brl) %> · alocado <%= moneyUsd(saldo.alocado_usd) %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Pedidos abertos</p>
+    <p class="stat-value"><%= kpi.qtdAbertos %></p>
+    <p class="stat-meta"><%= kpi.qtdCobertos %> cobertos · média <%= numberBr(kpi.coberturaMedia, 1) %>%</p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Invoice total USD</p>
+    <p class="stat-value"><%= moneyUsd(kpi.invoiceTotalUsd) %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Falta a cobrir USD</p>
+    <p class="stat-value <%= kpi.faltaTotalUsd > 0 ? 'text-bad' : 'text-ok' %>"><%= moneyUsd(kpi.faltaTotalUsd) %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">PTAX hoje</p>
+    <% if (kpi.ptaxAsk != null) { %>
+      <p class="stat-value"><%= numberBr(kpi.ptaxAsk, 4) %></p>
+      <p class="stat-meta <%= kpi.ptaxPct > 0 ? 'text-ok' : (kpi.ptaxPct < 0 ? 'text-bad' : '') %>">
+        <% if (kpi.ptaxPct != null) { %>
+          <%= kpi.ptaxPct > 0 ? '+' : '' %><%= numberBr(kpi.ptaxPct, 2) %>%
+        <% } else { %>
+          referência BCB
+        <% } %>
+      </p>
+    <% } else { %>
+      <p class="stat-value">—</p>
+      <p class="stat-meta">cotação indisponível</p>
+    <% } %>
+  </div>
+</section>
+
+<section class="dash-grid mb-4">
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Saldo do pool (USD)</h2>
+      <a href="/saldo" class="link-action text-sm">Abrir saldo</a>
+    </div>
+    <div class="panel-body">
+      <div class="chart-box">
+        <canvas id="chartSaldo" aria-label="Gráfico do saldo"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Pedidos por status</h2>
+    </div>
+    <div class="panel-body">
+      <% if (!statusLabels.length) { %>
+        <p class="empty-state">Sem pedidos para agregar.</p>
+      <% } else { %>
+        <div class="chart-box chart-box-sm">
+          <canvas id="chartStatus" aria-label="Gráfico de status"></canvas>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</section>
+
+<section class="panel mb-4">
+  <div class="panel-head">
+    <h2>Cobertura por pedido</h2>
+  </div>
+  <div class="panel-body">
+    <% if (!coberturas.length) { %>
+      <p class="empty-state">Nenhum pedido cadastrado ainda.</p>
+    <% } else { %>
+      <div class="bar-list">
+        <% coberturas.forEach(function(cov) { %>
+          <div class="bar-row">
+            <a class="code link-action" href="/pedidos/<%= cov.id %>"><%= cov.codigo %></a>
+            <div class="progress <%= cov.coberto ? 'progress-ok' : (cov.pct > 0 ? 'progress-warn' : '') %>" title="<%= cov.pct %>%">
+              <span style="width: <%= cov.pct %>%"></span>
+            </div>
+            <div class="val"><%= cov.pct %>% · <%= moneyUsd(cov.falta_usd) %></div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Pedidos recentes</h2>
+    <a href="/pedidos" class="link-action text-sm">Ver todos</a>
+  </div>
   <% if (!pedidos.length) { %>
-    <p class="rounded-lg border border-dashed border-[#d4cfc3] bg-white/50 p-6 text-[#4a5560]">Nenhum pedido cadastrado ainda.</p>
+    <div class="panel-body"><p class="empty-state">Nenhum pedido cadastrado ainda.</p></div>
   <% } else { %>
-    <div class="overflow-x-auto rounded-lg border border-[#d4cfc3] bg-white/70">
-      <table class="w-full text-left text-sm">
-        <thead class="bg-[#1a2332] text-white">
+    <div class="table-panel" style="border:0;border-radius:0">
+      <table>
+        <thead>
           <tr>
-            <th class="px-3 py-2">Código</th>
-            <th class="px-3 py-2">Status</th>
-            <th class="px-3 py-2">Itens</th>
-            <th class="px-3 py-2">Invoice USD</th>
-            <th class="px-3 py-2"></th>
+            <th>Código</th>
+            <th>Status</th>
+            <th>Itens</th>
+            <th>Invoice USD</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
           <% pedidos.forEach(function(p) { %>
-            <tr class="border-t border-[#d4cfc3]">
-              <td class="px-3 py-2 font-semibold"><%= p.codigo %></td>
-              <td class="px-3 py-2"><%= p.status %></td>
-              <td class="px-3 py-2"><%= p.qtd_itens %></td>
-              <td class="px-3 py-2"><%= moneyUsd(p.total_usd) %></td>
-              <td class="px-3 py-2 text-right">
-                <a href="/pedidos/<%= p.id %>" class="text-[#0f6e56] underline">Abrir</a>
+            <tr>
+              <td class="font-semibold"><%= p.codigo %></td>
+              <td><span class="badge badge-info"><%= p.status %></span></td>
+              <td class="num"><%= p.qtd_itens %></td>
+              <td class="num"><%= moneyUsd(p.total_usd) %></td>
+              <td class="text-right">
+                <a href="/pedidos/<%= p.id %>" class="link-action">Abrir</a>
               </td>
             </tr>
           <% }) %>
@@ -59,5 +247,124 @@
     </div>
   <% } %>
 </section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const disponivel = <%= Number(saldo.disponivel_usd) || 0 %>;
+  const alocado = <%= Number(saldo.alocado_usd) || 0 %>;
+  const ctxSaldo = document.getElementById('chartSaldo');
+  if (ctxSaldo && window.Chart) {
+    new Chart(ctxSaldo, {
+      type: 'doughnut',
+      data: {
+        labels: ['Disponível', 'Alocado'],
+        datasets: [{
+          data: [disponivel, alocado],
+          backgroundColor: ['#1B4F9C', '#94A3B8'],
+          borderWidth: 0,
+          hoverOffset: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'IBM Plex Sans', size: 12 } } },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                const v = ctx.parsed || 0;
+                return ' ' + ctx.label + ': US$ ' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  const statusLabels = <%- JSON.stringify(statusLabels) %>;
+  const statusValues = <%- JSON.stringify(statusValues) %>;
+  const ctxStatus = document.getElementById('chartStatus');
+  if (ctxStatus && window.Chart && statusLabels.length) {
+    new Chart(ctxStatus, {
+      type: 'bar',
+      data: {
+        labels: statusLabels,
+        datasets: [{
+          label: 'Pedidos',
+          data: statusValues,
+          backgroundColor: '#1B4F9C',
+          borderRadius: 2,
+          maxBarThickness: 36
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { family: 'IBM Plex Sans', size: 11 } } },
+          y: { beginAtZero: true, ticks: { precision: 0, font: { family: 'IBM Plex Sans', size: 11 } }, grid: { color: '#ECEEF2' } }
+        }
+      }
+    });
+  }
+
+  const fxLabels = <%- JSON.stringify(histLabels) %>;
+  const fxBids = <%- JSON.stringify(histBids) %>;
+  const ctxFx = document.getElementById('chartFx');
+  if (ctxFx && window.Chart && fxBids.length > 1) {
+    new Chart(ctxFx, {
+      type: 'line',
+      data: {
+        labels: fxLabels,
+        datasets: [{
+          label: 'USD compra',
+          data: fxBids,
+          borderColor: '#93C5FD',
+          backgroundColor: 'rgba(147, 197, 253, 0.15)',
+          fill: true,
+          tension: 0.35,
+          pointRadius: 2,
+          pointHoverRadius: 4,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                const v = ctx.parsed.y || 0;
+                return ' R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(148,163,184,0.15)' },
+            ticks: { color: '#94A3B8', font: { family: 'IBM Plex Sans', size: 10 }, maxRotation: 0 }
+          },
+          y: {
+            grid: { color: 'rgba(148,163,184,0.15)' },
+            ticks: {
+              color: '#94A3B8',
+              font: { family: 'IBM Plex Mono', size: 10 },
+              callback: function (v) { return Number(v).toFixed(2); }
+            }
+          }
+        }
+      }
+    });
+  }
+})();
+</script>
 
 <%- include('../partials/footer') %>

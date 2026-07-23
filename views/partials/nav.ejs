@@ -1,12 +1,15 @@
-<header class="border-b border-[#d4cfc3] bg-[#f7f4ee]/80 backdrop-blur">
-  <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
-    <a href="/" class="brand text-2xl font-bold text-[#0f6e56]">Paulo</a>
-    <nav class="flex flex-wrap gap-2 text-sm font-medium" aria-label="Principal">
-      <a href="/" class="rounded px-3 py-1.5 <%= currentPath === '/' ? 'bg-[#0f6e56] text-white' : 'hover:bg-[#e8efe9]' %>">Dashboard</a>
-      <a href="/pedidos" class="rounded px-3 py-1.5 <%= currentPath.startsWith('/pedidos') ? 'bg-[#0f6e56] text-white' : 'hover:bg-[#e8efe9]' %>">Pedidos</a>
-      <a href="/pagamentos" class="rounded px-3 py-1.5 <%= currentPath.startsWith('/pagamentos') ? 'bg-[#0f6e56] text-white' : 'hover:bg-[#e8efe9]' %>">Pagamentos</a>
-      <a href="/saldo" class="rounded px-3 py-1.5 <%= currentPath.startsWith('/saldo') ? 'bg-[#0f6e56] text-white' : 'hover:bg-[#e8efe9]' %>">Saldo</a>
-      <a href="/desembaraco" class="rounded px-3 py-1.5 <%= currentPath.startsWith('/desembaraco') ? 'bg-[#0f6e56] text-white' : 'hover:bg-[#e8efe9]' %>">Desembaraço</a>
+<header class="app-nav">
+  <div class="nav-inner app-shell" style="padding-top:0;padding-bottom:0">
+    <a href="/" class="nav-brand brand">
+      <span class="nav-mark" aria-hidden="true">PI</span>
+      Paulo<span>Importação</span>
+    </a>
+    <nav class="nav-menu" aria-label="Principal">
+      <a href="/" class="nav-link <%= currentPath === '/' ? 'nav-link-active' : '' %>">Dashboard</a>
+      <a href="/pedidos" class="nav-link <%= currentPath.startsWith('/pedidos') ? 'nav-link-active' : '' %>">Pedidos</a>
+      <a href="/pagamentos" class="nav-link <%= currentPath.startsWith('/pagamentos') ? 'nav-link-active' : '' %>">Pagamentos</a>
+      <a href="/saldo" class="nav-link <%= currentPath.startsWith('/saldo') ? 'nav-link-active' : '' %>">Saldo</a>
+      <a href="/desembaraco" class="nav-link <%= currentPath.startsWith('/desembaraco') ? 'nav-link-active' : '' %>">Desembaraço</a>
     </nav>
   </div>
 </header>

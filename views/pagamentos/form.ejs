@@ -1,52 +1,67 @@
 <%- include('../partials/header') %>
 
-<section class="mb-6">
-  <h1 class="brand text-3xl font-bold"><%= pagamento && pagamento.id ? 'Editar pagamento' : 'Novo pagamento' %></h1>
-  <p class="mt-1 text-sm text-[#4a5560]">Não vincula a pedido. Informe USD e dólar do dia; BRL pode ser calculado (USD × dólar).</p>
+<section class="page-header flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <p class="page-eyebrow">Caixa</p>
+    <h1 class="page-title"><%= pagamento && pagamento.id ? 'Editar pagamento' : 'Novo pagamento' %></h1>
+    <p class="page-sub">Não vincula a pedido. BRL pode ser calculado automaticamente (USD × dólar).</p>
+  </div>
+  <a href="/pagamentos" class="btn btn-ghost btn-sm">Voltar à lista</a>
 </section>
 
 <% if (error) { %>
-  <p class="mb-4 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert"><%= error %></p>
+  <p class="alert alert-error" role="alert"><%= error %></p>
 <% } %>
 
 <form
   method="POST"
   action="<%= pagamento && pagamento.id ? '/pagamentos/' + pagamento.id + '?_method=PUT' : '/pagamentos' %>"
-  class="max-w-xl space-y-4 rounded-lg border border-[#d4cfc3] bg-white/80 p-5"
+  class="panel form-panel form-shell form-shell-wide"
 >
-  <div>
-    <label class="label" for="data_pagamento">Data</label>
-    <input class="field" type="date" id="data_pagamento" name="data_pagamento" required value="<%= pagamento?.data_pagamento || '' %>">
-  </div>
-  <div>
-    <label class="label" for="descricao">Descrição</label>
-    <input class="field" id="descricao" name="descricao" required value="<%= pagamento?.descricao || '' %>">
-  </div>
-  <div>
-    <label class="label" for="tipo">Tipo</label>
-    <select class="field" id="tipo" name="tipo">
-      <% tipos.forEach(function(t) { %>
-        <option value="<%= t %>" <%= (pagamento?.tipo || 'fornecedor') === t ? 'selected' : '' %>><%= t %></option>
-      <% }) %>
-    </select>
-  </div>
-  <div class="grid gap-3 sm:grid-cols-3">
-    <div>
-      <label class="label" for="valor_usd">Valor USD</label>
-      <input class="field" type="number" step="any" id="valor_usd" name="valor_usd" value="<%= pagamento?.valor_usd ?? '' %>" required>
-    </div>
-    <div>
-      <label class="label" for="dolar_dia">Dólar do dia</label>
-      <input class="field" type="number" step="any" id="dolar_dia" name="dolar_dia" value="<%= pagamento?.dolar_dia ?? '' %>" required>
-    </div>
-    <div>
-      <label class="label" for="valor_brl">Valor BRL</label>
-      <input class="field" type="number" step="any" id="valor_brl" name="valor_brl" value="<%= pagamento?.valor_brl ?? '' %>" placeholder="Opcional se USD e dólar">
+  <div class="form-section">
+    <h2 class="form-section-title">Dados do pagamento</h2>
+    <div class="form-grid form-grid-2">
+      <div>
+        <label class="label" for="data_pagamento">Data</label>
+        <input class="field" type="date" id="data_pagamento" name="data_pagamento" required value="<%= pagamento?.data_pagamento || '' %>">
+      </div>
+      <div>
+        <label class="label" for="tipo">Tipo</label>
+        <select class="field" id="tipo" name="tipo">
+          <% tipos.forEach(function(t) { %>
+            <option value="<%= t %>" <%= (pagamento?.tipo || 'fornecedor') === t ? 'selected' : '' %>><%= t %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="span-2">
+        <label class="label" for="descricao">Descrição</label>
+        <input class="field" id="descricao" name="descricao" required value="<%= pagamento?.descricao || '' %>" placeholder="Ex.: Remessa parcial fornecedor X">
+      </div>
     </div>
   </div>
-  <div class="flex gap-2">
-    <button type="submit" class="btn btn-primary">Salvar</button>
+
+  <div class="form-section">
+    <h2 class="form-section-title">Valores</h2>
+    <div class="form-grid form-grid-3">
+      <div>
+        <label class="label" for="valor_usd">Valor USD</label>
+        <input class="field field-num" type="text" inputmode="decimal" id="valor_usd" name="valor_usd" value="<%= pagamento?.valor_usd != null && pagamento?.valor_usd !== '' ? formatInputBr(pagamento.valor_usd, 2) : '' %>" placeholder="ex: 1.000,00" required>
+      </div>
+      <div>
+        <label class="label" for="dolar_dia">Dólar do dia</label>
+        <input class="field field-num" type="text" inputmode="decimal" id="dolar_dia" name="dolar_dia" value="<%= pagamento?.dolar_dia != null && pagamento?.dolar_dia !== '' ? formatInputBr(pagamento.dolar_dia, 4) : '' %>" placeholder="ex: 5,4321" required>
+      </div>
+      <div>
+        <label class="label" for="valor_brl">Valor BRL</label>
+        <input class="field field-num" type="text" inputmode="decimal" id="valor_brl" name="valor_brl" value="<%= pagamento?.valor_brl != null && pagamento?.valor_brl !== '' ? formatInputBr(pagamento.valor_brl, 2) : '' %>" placeholder="opcional">
+        <p class="field-hint">Se vazio, calcula USD × dólar.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-actions">
     <a href="/pagamentos" class="btn btn-ghost">Cancelar</a>
+    <button type="submit" class="btn btn-primary"><%= pagamento && pagamento.id ? 'Salvar alterações' : 'Registrar pagamento' %></button>
   </div>
 </form>
 
