@@ -3,7 +3,12 @@ const path = require('path');
 const { Client } = require('pg');
 
 const SQL_DIR = path.join(__dirname, '..', '..', 'sql');
-const MIGRATIONS = ['migrate_custo_snapshot.sql', 'migrate_saldo_alocacao.sql'];
+const MIGRATIONS = [
+  'migrate_custo_snapshot.sql',
+  'migrate_saldo_alocacao.sql',
+  'migrate_produtos.sql',
+  'seed_produtos.sql',
+];
 
 function dbConfig() {
   return {

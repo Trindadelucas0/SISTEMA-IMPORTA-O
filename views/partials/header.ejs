@@ -697,6 +697,69 @@
       margin-bottom: 0.25rem;
       color: var(--muted);
     }
+
+    .produto-combobox { position: relative; }
+    .produto-combobox-control { position: relative; }
+    .produto-combobox-clear {
+      position: absolute;
+      top: 50%;
+      right: 0.4rem;
+      transform: translateY(-50%);
+      width: 1.4rem;
+      height: 1.4rem;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+    .produto-combobox-clear:hover { background: var(--thead); color: var(--ink); }
+    .produto-combobox-input { padding-right: 1.8rem; }
+    .produto-combobox-list {
+      position: absolute;
+      top: calc(100% + 0.25rem);
+      left: 0;
+      right: 0;
+      z-index: 20;
+      max-height: 12rem;
+      overflow-y: auto;
+      margin: 0;
+      padding: 0.25rem;
+      list-style: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+    }
+    .produto-combobox-list[hidden] { display: none; }
+    .produto-combobox-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.4rem 0.55rem;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.8125rem;
+    }
+    .produto-combobox-item-nome { font-weight: 500; }
+    .produto-combobox-item-codigo { font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
+    .produto-combobox-item:hover,
+    .produto-combobox-item.is-active {
+      background: var(--thead);
+    }
+    .produto-combobox-empty {
+      padding: 0.5rem 0.55rem;
+      font-size: 0.8125rem;
+      color: var(--muted);
+    }
+    @media (max-width: 639px) {
+      .produto-combobox-list { max-height: 10rem; }
+      .produto-combobox-input { font-size: 16px; }
+    }
+
     .bar-list { display: flex; flex-direction: column; gap: 0.65rem; }
     .bar-row .code { font-weight: 600; font-size: 0.75rem; }
     .bar-row .val { text-align: right; font-family: "IBM Plex Mono", monospace; font-size: 0.6875rem; color: var(--muted); }

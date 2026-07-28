@@ -8,6 +8,7 @@ const methodOverride = require('method-override');
 const indexRoutes = require('./src/routes/index');
 const pedidosRoutes = require('./src/routes/pedidos');
 const pagamentosRoutes = require('./src/routes/pagamentos');
+const produtosRoutes = require('./src/routes/produtos');
 const desembaracoRoutes = require('./src/routes/desembaraco');
 const { notFound, errorHandler } = require('./src/middlewares/errorHandler');
 const { moneyBrl, moneyUsd, numberBr, percentBr, formatInputBr } = require('./src/utils/format');
@@ -46,6 +47,7 @@ app.use((req, res, next) => {
 app.use('/', indexRoutes);
 app.use('/pedidos', pedidosRoutes);
 app.use('/pagamentos', pagamentosRoutes);
+app.use('/produtos', produtosRoutes);
 app.use('/saldo', require('./src/routes/saldo'));
 app.use('/desembaraco', desembaracoRoutes);
 

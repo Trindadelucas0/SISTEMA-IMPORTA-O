@@ -1,6 +1,7 @@
 const Pedido = require('../models/Pedido');
 const ItemPedido = require('../models/ItemPedido');
 const Desembaraco = require('../models/Desembaraco');
+const Produto = require('../models/Produto');
 const saldoService = require('../services/saldoService');
 const { parseNumber } = require('../utils/format');
 
@@ -105,6 +106,7 @@ async function detalhe(req, res, next) {
     const saldo = await saldoService.saldoPedido(pedido.id);
     const alocacoes = await saldoService.alocacoesComCambio(pedido.id);
     const desembaraco = await Desembaraco.findByPedido(pedido.id);
+    const produtos = await Produto.listarAtivos();
 
     let custoDelta = null;
     if (desembaraco?.custo_total_atual != null && desembaraco?.custo_total_anterior != null) {
@@ -128,6 +130,7 @@ async function detalhe(req, res, next) {
       alocacoes,
       desembaraco,
       custoDelta,
+      produtos,
       statusList: STATUS,
     });
   } catch (err) {

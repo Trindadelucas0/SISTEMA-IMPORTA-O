@@ -1,0 +1,60 @@
+<%- include('../partials/header') %>
+
+<section class="page-header flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <p class="page-eyebrow">Cadastro</p>
+    <h1 class="page-title"><%= produto && produto.id ? 'Editar produto' : 'Novo produto' %></h1>
+    <p class="page-sub">Esses dados aparecem no seletor de "Adicionar item" dos pedidos.</p>
+  </div>
+  <a href="/produtos" class="btn btn-ghost btn-sm">Voltar à lista</a>
+</section>
+
+<% if (error) { %>
+  <p class="alert alert-error" role="alert"><%= error %></p>
+<% } %>
+
+<form
+  method="POST"
+  action="<%= produto && produto.id ? '/produtos/' + produto.id + '?_method=PUT' : '/produtos' %>"
+  class="panel form-panel form-shell"
+>
+  <div class="form-section">
+    <h2 class="form-section-title">Identificação</h2>
+    <div class="form-grid form-grid-2">
+      <div>
+        <label class="label" for="codigo_interno">Código interno</label>
+        <input class="field mono" id="codigo_interno" name="codigo_interno" required value="<%= produto?.codigo_interno || '' %>" placeholder="2036096254704" inputmode="numeric" autocomplete="off">
+        <p class="field-hint">Único no catálogo. 10 a 15 dígitos.</p>
+      </div>
+      <div>
+        <label class="label" for="nome">Nome</label>
+        <input class="field" id="nome" name="nome" required value="<%= produto?.nome || '' %>" placeholder="KIT AC 200">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h2 class="form-section-title">Dados opcionais</h2>
+    <div class="form-grid form-grid-2">
+      <div>
+        <label class="label" for="ncm">NCM</label>
+        <input class="field mono" id="ncm" name="ncm" value="<%= produto?.ncm || '' %>" placeholder="84289090" inputmode="numeric">
+      </div>
+      <div>
+        <label class="label" for="preco_usd">Preço USD padrão</label>
+        <input class="field field-num" id="preco_usd" name="preco_usd" type="text" inputmode="decimal" value="<%= produto?.preco_usd != null && produto?.preco_usd !== '' ? formatInputBr(produto.preco_usd, 2) : '' %>" placeholder="ex: 12,50">
+      </div>
+    </div>
+    <label class="flex items-center gap-2" style="margin-top:0.75rem">
+      <input type="checkbox" name="ativo" <%= !produto || produto.ativo ? 'checked' : '' %>>
+      Ativo (aparece no seletor de itens do pedido)
+    </label>
+  </div>
+
+  <div class="form-actions">
+    <a href="/produtos" class="btn btn-ghost">Cancelar</a>
+    <button type="submit" class="btn btn-primary"><%= produto && produto.id ? 'Salvar alterações' : 'Cadastrar produto' %></button>
+  </div>
+</form>
+
+<%- include('../partials/footer') %>

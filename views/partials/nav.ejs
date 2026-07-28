@@ -7,6 +7,7 @@
     <nav class="nav-menu" aria-label="Principal">
       <a href="/" class="nav-link <%= currentPath === '/' ? 'nav-link-active' : '' %>">Dashboard</a>
       <a href="/pedidos" class="nav-link <%= currentPath.startsWith('/pedidos') ? 'nav-link-active' : '' %>">Pedidos</a>
+      <a href="/produtos" class="nav-link <%= currentPath.startsWith('/produtos') ? 'nav-link-active' : '' %>">Produtos</a>
       <a href="/pagamentos" class="nav-link <%= currentPath.startsWith('/pagamentos') ? 'nav-link-active' : '' %>">Pagamentos</a>
       <a href="/saldo" class="nav-link <%= currentPath.startsWith('/saldo') ? 'nav-link-active' : '' %>">Saldo</a>
       <a href="/desembaraco" class="nav-link <%= currentPath.startsWith('/desembaraco') ? 'nav-link-active' : '' %>">Desembaraço</a>

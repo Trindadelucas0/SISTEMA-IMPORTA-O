@@ -1,0 +1,51 @@
+<%- include('../partials/header') %>
+
+<section class="page-header mb-4 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <p class="page-eyebrow">Cadastro</p>
+    <h1 class="page-title">Produtos</h1>
+    <p class="page-sub">Catálogo usado na seleção de itens dos pedidos.</p>
+  </div>
+  <a href="/produtos/novo" class="btn btn-primary">Novo produto</a>
+</section>
+
+<% if (!produtos.length) { %>
+  <p class="empty-state">Nenhum produto cadastrado.</p>
+<% } else { %>
+  <div class="panel">
+    <p class="table-scroll-hint px-3 pt-2">Deslize a tabela para o lado para ver mais colunas.</p>
+    <div class="table-panel" style="border:0;border-radius:0">
+      <table>
+        <thead>
+          <tr>
+            <th>Cód. interno</th>
+            <th>Nome</th>
+            <th class="col-hide-sm">NCM</th>
+            <th class="col-hide-sm">Preço USD</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% produtos.forEach(function(p) { %>
+            <tr>
+              <td class="mono"><%= p.codigo_interno %></td>
+              <td class="font-medium"><%= p.nome %></td>
+              <td class="mono col-hide-sm"><%= p.ncm || '—' %></td>
+              <td class="num col-hide-sm"><%= moneyUsd(p.preco_usd) %></td>
+              <td><span class="badge <%= p.ativo ? 'badge-ok' : 'badge-danger' %>"><%= p.ativo ? 'ativo' : 'inativo' %></span></td>
+              <td class="text-right space-x-2">
+                <a href="/produtos/<%= p.id %>/editar" class="link-action">Editar</a>
+                <form class="inline" method="POST" action="/produtos/<%= p.id %>?_method=DELETE" onsubmit="return confirm('Excluir produto do catálogo?')">
+                  <button type="submit" class="link-danger">Excluir</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

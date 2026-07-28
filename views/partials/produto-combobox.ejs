@@ -1,0 +1,29 @@
+<%
+  const produtosCombobox = (produtos || []).map(function (p) {
+    return {
+      nome: p.nome,
+      codigo_interno: p.codigo_interno,
+      ncm: p.ncm,
+      preco_usd_formatado: p.preco_usd != null ? formatInputBr(p.preco_usd, 2) : '',
+    };
+  });
+%>
+<div class="produto-combobox span-2" id="produto-combobox">
+  <label class="label" for="produto-busca">Produto do catálogo</label>
+  <div class="produto-combobox-control">
+    <input
+      class="field produto-combobox-input"
+      id="produto-busca"
+      type="text"
+      placeholder="Buscar por nome ou código..."
+      autocomplete="off"
+      role="combobox"
+      aria-expanded="false"
+      aria-controls="produto-listbox"
+    >
+    <button type="button" class="produto-combobox-clear" aria-label="Limpar busca" hidden>&times;</button>
+    <ul id="produto-listbox" class="produto-combobox-list" role="listbox" hidden></ul>
+  </div>
+  <p class="field-hint">Ao escolher, preenche REF, descrição, NCM e preço abaixo (edite se precisar).</p>
+  <script type="application/json" class="produto-combobox-data"><%- JSON.stringify(produtosCombobox) %></script>
+</div>

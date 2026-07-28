@@ -163,10 +163,11 @@
     <div class="panel-head">
       <h2>Adicionar item</h2>
     </div>
-    <form method="POST" action="/pedidos/<%= pedido.id %>/itens">
+    <form method="POST" action="/pedidos/<%= pedido.id %>/itens" id="form-adicionar-item">
       <div class="form-section">
         <h3 class="form-section-title">Produto</h3>
         <div class="form-grid">
+          <%- include('../partials/produto-combobox') %>
           <div>
             <label class="label" for="referencia">REF</label>
             <input class="field mono" id="referencia" name="referencia" required placeholder="AC200 ALUMINIO" autocomplete="off">
@@ -230,5 +231,7 @@
     </form>
   </div>
 </section>
+
+<script src="/js/produto-combobox.js"></script>
 
 <%- include('../partials/footer') %>
