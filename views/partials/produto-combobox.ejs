@@ -1,5 +1,6 @@
 <%
-  const produtosCombobox = (produtos || []).map(function (p) {
+  const listaProdutos = Array.isArray(locals.produtos) ? locals.produtos : [];
+  const produtosCombobox = listaProdutos.map(function (p) {
     return {
       nome: p.nome,
       codigo_interno: p.codigo_interno,

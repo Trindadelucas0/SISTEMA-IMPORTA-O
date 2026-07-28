@@ -167,7 +167,7 @@
       <div class="form-section">
         <h3 class="form-section-title">Produto</h3>
         <div class="form-grid">
-          <%- include('../partials/produto-combobox') %>
+          <%- include('../partials/produto-combobox', { produtos: typeof locals.produtos !== 'undefined' ? locals.produtos : [] }) %>
           <div>
             <label class="label" for="referencia">REF</label>
             <input class="field mono" id="referencia" name="referencia" required placeholder="AC200 ALUMINIO" autocomplete="off">
