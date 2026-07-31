@@ -16,7 +16,7 @@
     <div class="flex flex-wrap items-center gap-2">
       <h1 class="page-title mono"><%= pedido.codigo %></h1>
       <%- include('../partials/status-pedido', { pedidoId: pedido.id, status: pedido.status }) %>
-      <span class="badge <%= badgeClass %>" title="Situação do pagamento ao fornecedor">
+      <span id="badge-cobertura-status" class="badge <%= badgeClass %>" title="Situação do pagamento ao fornecedor">
         <%= saldo.coberto ? 'Quitado fornecedor' : 'Aguardando saldo' %>
       </span>
     </div>
@@ -45,34 +45,34 @@
   <p class="alert alert-error" role="alert">Status inválido. Escolha Aberta, Em Trânsito ou Embarcada.</p>
 <% } %>
 
-<section class="coverage-block mb-4">
+<section class="coverage-block mb-4" id="cobertura-block">
   <div class="mb-2 flex flex-wrap items-end justify-between gap-2">
     <div>
       <p class="stat-label">Cobertura do invoice</p>
-      <p class="mono mt-1 text-lg font-semibold"><%= coberturaPct %>%</p>
+      <p class="mono mt-1 text-lg font-semibold" id="cobertura-pct"><%= coberturaPct %>%</p>
     </div>
-    <p class="stat-meta mono">
+    <p class="stat-meta mono" id="cobertura-meta">
       Alocado <%= moneyUsd(alocado) %> · Falta <%= moneyUsd(falta) %> · Invoice <%= moneyUsd(invoice) %>
     </p>
   </div>
-  <div class="progress <%= saldo.coberto ? 'progress-ok' : (coberturaPct > 0 ? 'progress-warn' : '') %>">
-    <span style="width: <%= coberturaPct %>%"></span>
+  <div id="cobertura-progress" class="progress <%= saldo.coberto ? 'progress-ok' : (coberturaPct > 0 ? 'progress-warn' : '') %>">
+    <span id="cobertura-bar" style="width: <%= coberturaPct %>%"></span>
   </div>
 </section>
 
 <section class="kpi-grid mb-4">
   <div class="stat">
     <p class="stat-label">Invoice USD</p>
-    <p class="stat-value"><%= moneyUsd(invoice) %></p>
+    <p class="stat-value" id="kpi-invoice"><%= moneyUsd(invoice) %></p>
   </div>
   <div class="stat">
     <p class="stat-label">Alocado</p>
-    <p class="stat-value"><%= moneyUsd(alocado) %></p>
-    <p class="stat-meta"><%= moneyBrl(saldo.alocado_brl) %></p>
+    <p class="stat-value" id="kpi-alocado"><%= moneyUsd(alocado) %></p>
+    <p class="stat-meta" id="kpi-alocado-brl"><%= moneyBrl(saldo.alocado_brl) %></p>
   </div>
   <div class="stat">
     <p class="stat-label">Falta USD</p>
-    <p class="stat-value <%= falta > 0 ? 'text-bad' : 'text-ok' %>"><%= moneyUsd(falta) %></p>
+    <p class="stat-value <%= falta > 0 ? 'text-bad' : 'text-ok' %>" id="kpi-falta"><%= moneyUsd(falta) %></p>
   </div>
   <div class="stat">
     <p class="stat-label">Prevista de chegada</p>
@@ -99,11 +99,9 @@
   <% } %>
 </section>
 
-<% if (!saldo.coberto) { %>
-  <p class="alert alert-warn">
-    Pedido ainda não quitado no saldo. Aloque pagamentos em <a class="link-action" href="/saldo">Saldo</a> antes do desembaraço / custo unitário.
-  </p>
-<% } %>
+<p class="alert alert-warn" id="alerta-saldo" <%= saldo.coberto ? 'hidden' : '' %>>
+  Pedido ainda não quitado no saldo. Aloque pagamentos em <a class="link-action" href="/saldo">Saldo</a> antes do desembaraço / custo unitário.
+</p>
 
 <% if (alocacoes && alocacoes.length) { %>
 <section class="panel mb-4">
@@ -134,14 +132,15 @@
 <% } %>
 
 <section class="pedido-layout mb-4">
-  <div class="panel">
+  <div class="panel" id="painel-itens" data-pedido-id="<%= pedido.id %>">
     <div class="panel-head">
       <h2>Itens do invoice</h2>
-      <span class="badge"><%= itens.length %> item(ns)</span>
+      <span class="badge" id="itens-badge"><%= itens.length %> item(ns)</span>
     </div>
-    <% if (!itens.length) { %>
-      <div class="panel-body"><p class="empty-state">Nenhum item neste pedido.</p></div>
-    <% } else { %>
+    <div class="panel-body" id="itens-empty" <%= itens.length ? 'hidden' : '' %>>
+      <p class="empty-state">Nenhum item neste pedido.</p>
+    </div>
+    <div id="itens-table-wrap" <%= itens.length ? '' : 'hidden' %>>
       <p class="table-scroll-hint px-3 pt-2">Deslize a tabela para o lado para ver mais colunas.</p>
       <div class="table-panel" style="border:0;border-radius:0">
         <table>
@@ -156,9 +155,9 @@
               <th></th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="itens-tbody">
             <% itens.forEach(function(item) { %>
-              <tr class="align-top">
+              <tr class="align-top" data-item-id="<%= item.id %>">
                 <td class="font-medium mono">
                   <a class="link-action" href="/analises/comparativo/item/<%= encodeURIComponent(item.referencia) %>" title="Ver análise vs última compra"><%= item.referencia %></a>
                 </td>
@@ -169,7 +168,7 @@
                 <td class="mono col-hide-sm"><%= item.ncm || '—' %></td>
                 <td class="text-right space-x-2">
                   <a class="link-action" href="/analises/comparativo/item/<%= encodeURIComponent(item.referencia) %>">vs última</a>
-                  <form class="inline" method="POST" action="/pedidos/<%= pedido.id %>/itens/<%= item.id %>?_method=DELETE" onsubmit="return confirm('Remover item?')">
+                  <form class="inline form-remover-item" method="POST" action="/pedidos/<%= pedido.id %>/itens/<%= item.id %>?_method=DELETE">
                     <button type="submit" class="link-danger">Remover</button>
                   </form>
                 </td>
@@ -178,13 +177,14 @@
           </tbody>
         </table>
       </div>
-    <% } %>
+    </div>
   </div>
 
   <div class="panel form-panel">
     <div class="panel-head">
       <h2>Adicionar item</h2>
     </div>
+    <p id="form-item-status" class="alert" hidden role="status" style="margin:0.75rem 1rem 0"></p>
     <form method="POST" action="/pedidos/<%= pedido.id %>/itens" id="form-adicionar-item">
       <div class="form-section">
         <h3 class="form-section-title">Produto</h3>
@@ -248,12 +248,13 @@
       </div>
 
       <div class="form-actions form-actions-start">
-        <button type="submit" class="btn btn-primary">Adicionar item</button>
+        <button type="submit" class="btn btn-primary" id="btn-adicionar-item">Adicionar item</button>
       </div>
     </form>
   </div>
 </section>
 
 <script src="/js/produto-combobox.js"></script>
+<script src="/js/pedido-itens.js"></script>
 
 <%- include('../partials/footer') %>

@@ -19,6 +19,36 @@ function statusValido(raw) {
   return STATUS.includes(status) ? status : null;
 }
 
+function wantsJson(req) {
+  return req.accepts(['json', 'html']) === 'json';
+}
+
+function itemPayload(item) {
+  const quantidade = Number(item.quantidade) || 0;
+  const preco_usd = Number(item.preco_usd) || 0;
+  return {
+    id: item.id,
+    pedido_id: item.pedido_id,
+    referencia: item.referencia,
+    descricao: item.descricao || null,
+    quantidade,
+    preco_usd,
+    ncm: item.ncm || null,
+    amount_usd: ItemPedido.amountUsd(item),
+  };
+}
+
+async function respostaItensJson(res, pedidoId, item) {
+  const saldo = await saldoService.saldoPedido(pedidoId);
+  const itens = await ItemPedido.findByPedido(pedidoId);
+  return res.json({
+    ok: true,
+    item: item ? itemPayload(item) : null,
+    saldo,
+    qtdItens: itens.length,
+  });
+}
+
 function datasFabricacaoDoBody(body) {
   const data_inicio_fabricacao = toDateInputValue(body.data_inicio_fabricacao) || null;
   const data_prevista_chegada = data_inicio_fabricacao
@@ -376,8 +406,12 @@ async function remover(req, res, next) {
 
 async function adicionarItem(req, res, next) {
   try {
+    const json = wantsJson(req);
     const pedido = await Pedido.findById(req.params.id);
     if (!pedido) {
+      if (json) {
+        return res.status(404).json({ ok: false, erro: 'Pedido não encontrado.' });
+      }
       return res.status(404).render('errors/404', {
         title: 'Pedido não encontrado',
         message: 'Não há pedido com esse ID. Abra a lista de pedidos e escolha um existente.',
@@ -385,25 +419,32 @@ async function adicionarItem(req, res, next) {
       });
     }
 
-    const referencia = String(req.body.referencia || '').trim();
+    const body = req.body || {};
+    const referencia = String(body.referencia || '').trim();
     if (!referencia) {
+      if (json) {
+        return res.status(400).json({ ok: false, erro: 'Informe a REF do item.' });
+      }
       return res.redirect(`/pedidos/${pedido.id}?erro=item`);
     }
 
-    await ItemPedido.criar(pedido.id, {
+    const item = await ItemPedido.criar(pedido.id, {
       referencia,
-      descricao: req.body.descricao,
-      quantidade: parseNumber(req.body.quantidade),
-      preco_usd: parseNumber(req.body.preco_usd),
-      ncm: req.body.ncm,
-      aliq_ii: parseNumber(req.body.aliq_ii || 0.2),
-      aliq_ipi: parseNumber(req.body.aliq_ipi || 0),
-      aliq_pis: parseNumber(req.body.aliq_pis || 0.021),
-      aliq_cofins: parseNumber(req.body.aliq_cofins || 0.1025),
-      aliq_icms: parseNumber(req.body.aliq_icms || 0.04),
-      ordem: parseNumber(req.body.ordem),
+      descricao: body.descricao,
+      quantidade: parseNumber(body.quantidade),
+      preco_usd: parseNumber(body.preco_usd),
+      ncm: body.ncm,
+      aliq_ii: parseNumber(body.aliq_ii || 0.2),
+      aliq_ipi: parseNumber(body.aliq_ipi || 0),
+      aliq_pis: parseNumber(body.aliq_pis || 0.021),
+      aliq_cofins: parseNumber(body.aliq_cofins || 0.1025),
+      aliq_icms: parseNumber(body.aliq_icms || 0.04),
+      ordem: parseNumber(body.ordem),
     });
 
+    if (json) {
+      return respostaItensJson(res, pedido.id, item);
+    }
     res.redirect(`/pedidos/${pedido.id}`);
   } catch (err) {
     next(err);
@@ -443,8 +484,12 @@ async function atualizarItem(req, res, next) {
 
 async function removerItem(req, res, next) {
   try {
+    const json = wantsJson(req);
     const item = await ItemPedido.findById(req.params.itemId);
     if (!item) {
+      if (json) {
+        return res.status(404).json({ ok: false, erro: 'Item não encontrado.' });
+      }
       return res.status(404).render('errors/404', {
         title: 'Item não encontrado',
         message: 'Esse item não existe mais neste pedido.',
@@ -453,6 +498,9 @@ async function removerItem(req, res, next) {
     }
     const pedidoId = item.pedido_id;
     await ItemPedido.remover(item.id);
+    if (json) {
+      return respostaItensJson(res, pedidoId, item);
+    }
     res.redirect(`/pedidos/${pedidoId}`);
   } catch (err) {
     next(err);
