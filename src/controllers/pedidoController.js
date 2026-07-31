@@ -9,6 +9,7 @@ const {
   toDateInputValue,
   addDaysIso,
   STATUS_PEDIDO,
+  isPedidoAberto,
 } = require('../utils/format');
 
 const STATUS = STATUS_PEDIDO;
@@ -117,7 +118,7 @@ async function listar(req, res, next) {
         status_fornecedor: s.status_fornecedor,
       });
     }
-    const pedidosAbertos = pedidosComSaldo.filter((p) => p.status !== 'embarcada');
+    const pedidosAbertos = pedidosComSaldo.filter((p) => isPedidoAberto(p.status));
 
     res.render('pedidos/index', {
       title: 'Pedidos',

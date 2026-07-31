@@ -349,6 +349,66 @@
         grid-template-columns: repeat(4, minmax(0, 1fr));
       }
     }
+    @media (min-width: 768px) {
+      .kpi-grid-5 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+    @media (min-width: 1100px) {
+      .kpi-grid-5 {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+    }
+
+    .filters-inline {
+      display: grid;
+      gap: 0.65rem;
+      align-items: end;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 720px) {
+      .filters-inline {
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) auto;
+      }
+    }
+    .filters-inline-checks {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.65rem 1rem;
+      font-size: 0.8125rem;
+    }
+    .filters-inline-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      align-items: center;
+    }
+
+    .cell-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      line-height: 1.25;
+      min-width: 0;
+    }
+    .cell-clip {
+      display: block;
+      max-width: 11rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cell-clip-sm { max-width: 8rem; }
+    .cell-clip-md { max-width: 14rem; }
+    .table-panel.table-compact th,
+    .table-panel.table-compact td {
+      padding: 0.4rem 0.55rem;
+      vertical-align: top;
+    }
+    .table-panel.table-compact {
+      font-size: 0.78rem;
+    }
 
     .badge {
       display: inline-flex;
@@ -368,6 +428,7 @@
     .badge-warn { background: #FFFAEB; border-color: #FEDF89; color: #B54708; }
     .badge-danger { background: #FEF3F2; border-color: #FECDCA; color: #B42318; }
     .badge-info { background: #EFF8FF; border-color: #B2DDFF; color: #175CD3; }
+    .badge-muted { background: #F3F4F6; border-color: #D1D5DB; color: #4B5563; }
 
     .status-picker {
       position: relative;
@@ -844,7 +905,43 @@
       border-color: var(--primary);
       box-shadow: 0 0 0 3px rgba(27, 79, 156, 0.12);
     }
-    .field:disabled { background: #F3F4F6; color: var(--muted); }
+    .field:disabled,
+    .field[readonly] { background: #F3F4F6; color: var(--muted); }
+    .date-br {
+      position: relative;
+      display: flex;
+      align-items: stretch;
+    }
+    .date-br .field {
+      padding-right: 2.5rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .date-br-icon {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 2.4rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .date-br-native {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 2.4rem;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      z-index: 2;
+    }
     .field-num {
       text-align: right;
       font-family: "IBM Plex Mono", ui-monospace, monospace;

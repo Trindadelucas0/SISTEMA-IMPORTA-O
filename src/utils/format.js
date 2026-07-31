@@ -92,12 +92,40 @@ function parseNumber(raw) {
 }
 
 /**
+ * Converte dd/mm/aaaa (ou d/m/aaaa) para YYYY-MM-DD.
+ * Retorna '' se inválida.
+ */
+function parseDateBr(value) {
+  if (value === undefined || value === null || value === '') return '';
+  const s = String(value).trim();
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return '';
+  const day = Number(m[1]);
+  const month = Number(m[2]);
+  const year = Number(m[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return '';
+  const dt = new Date(Date.UTC(year, month - 1, day));
+  if (
+    dt.getUTCFullYear() !== year ||
+    dt.getUTCMonth() !== month - 1 ||
+    dt.getUTCDate() !== day
+  ) {
+    return '';
+  }
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+/**
  * Normaliza valor de data para YYYY-MM-DD (input type="date").
+ * Aceita ISO (YYYY-MM-DD) ou brasileiro (dd/mm/aaaa).
  */
 function toDateInputValue(value) {
   if (value === undefined || value === null || value === '') return '';
-  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
-    return value.slice(0, 10);
+  if (typeof value === 'string') {
+    const s = value.trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    const fromBr = parseDateBr(s);
+    if (fromBr) return fromBr;
   }
   const d = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(d.getTime())) return '';
@@ -128,12 +156,13 @@ function formatDateBr(value) {
   return `${d}/${m}/${y}`;
 }
 
-const STATUS_PEDIDO = ['aberta', 'em_transito', 'embarcada'];
+const STATUS_PEDIDO = ['aberta', 'em_transito', 'embarcada', 'finalizada'];
 
 const STATUS_PEDIDO_LABELS = {
   aberta: 'Aberta',
   em_transito: 'Em Trânsito',
   embarcada: 'Embarcada',
+  finalizada: 'Finalizada',
 };
 
 function statusPedidoLabel(status) {
@@ -145,10 +174,15 @@ const STATUS_PEDIDO_BADGE = {
   aberta: 'badge-info',
   em_transito: 'badge-warn',
   embarcada: 'badge-ok',
+  finalizada: 'badge-muted',
 };
 
 function statusPedidoBadgeClass(status) {
   return STATUS_PEDIDO_BADGE[status] || 'badge-info';
+}
+
+function isPedidoAberto(status) {
+  return status !== 'embarcada' && status !== 'finalizada';
 }
 
 function onlyDigits(value) {
@@ -199,12 +233,14 @@ module.exports = {
   formatInputBr,
   parseNumber,
   toDateInputValue,
+  parseDateBr,
   addDaysIso,
   formatDateBr,
   STATUS_PEDIDO,
   STATUS_PEDIDO_LABELS,
   statusPedidoLabel,
   statusPedidoBadgeClass,
+  isPedidoAberto,
   onlyDigits,
   formatCnpj,
   formatCep,

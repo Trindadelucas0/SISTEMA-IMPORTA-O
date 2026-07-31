@@ -2,7 +2,7 @@ const Pedido = require('../models/Pedido');
 const Pagamento = require('../models/Pagamento');
 const saldoService = require('../services/saldoService');
 const cotacaoService = require('../services/cotacaoService');
-const { statusPedidoLabel } = require('../utils/format');
+const { statusPedidoLabel, isPedidoAberto } = require('../utils/format');
 
 async function dashboard(req, res, next) {
   try {
@@ -36,7 +36,7 @@ async function dashboard(req, res, next) {
       const falta = Number(s.falta_usd) || 0;
       const pct = invoice > 0 ? Math.min(100, (alocado / invoice) * 100) : s.coberto ? 100 : 0;
       const coberto = !!s.coberto;
-      const aberto = p.status !== 'embarcada';
+      const aberto = isPedidoAberto(p.status);
 
       invoiceTotalUsd += invoice;
       faltaTotalUsd += Math.max(0, falta);

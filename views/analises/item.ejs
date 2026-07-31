@@ -1,5 +1,15 @@
 <%- include('../partials/header') %>
 
+<%
+  const parManual = Boolean(item.parEscolhido);
+  const labelAtual = parManual ? 'Compra A' : 'Última compra';
+  const labelAnterior = parManual ? 'Compra B' : 'Compra anterior';
+  const idAtual = item.ultima?.item_id != null ? String(item.ultima.item_id) : '';
+  const idAnterior = item.anterior?.item_id != null ? String(item.anterior.item_id) : '';
+  const selA = (filtros && filtros.compra_a) ? String(filtros.compra_a) : idAtual;
+  const selB = (filtros && filtros.compra_b) ? String(filtros.compra_b) : idAnterior;
+%>
+
 <section class="page-header mb-4 flex flex-wrap items-end justify-between gap-3">
   <div>
     <p class="page-eyebrow">Análises · Item</p>
@@ -12,13 +22,50 @@
   </div>
 </section>
 
+<section class="panel mb-4">
+  <div class="panel-head"><h2>Comparar compras</h2></div>
+  <form method="GET" action="/analises/comparativo/item/<%= encodeURIComponent(item.referencia) %>" class="panel-body">
+    <div class="filters-inline">
+      <div>
+        <label class="label" for="compra_a">Compra A</label>
+        <select class="field" id="compra_a" name="compra_a" required>
+          <option value="">Selecione</option>
+          <% item.historico.forEach(function(h) { %>
+            <option value="<%= h.item_id %>" <%= String(selA) === String(h.item_id) ? 'selected' : '' %>>
+              <%= h.pedido_codigo %> · <%= formatDateBr(h.pedido_created_at) %> · <%= h.fornecedor || '—' %> · <%= moneyUsd(h.preco_usd) %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="label" for="compra_b">Compra B</label>
+        <select class="field" id="compra_b" name="compra_b" required>
+          <option value="">Selecione</option>
+          <% item.historico.forEach(function(h) { %>
+            <option value="<%= h.item_id %>" <%= String(selB) === String(h.item_id) ? 'selected' : '' %>>
+              <%= h.pedido_codigo %> · <%= formatDateBr(h.pedido_created_at) %> · <%= h.fornecedor || '—' %> · <%= moneyUsd(h.preco_usd) %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="filters-inline-actions">
+        <button type="submit" class="btn btn-primary btn-sm">Comparar</button>
+        <a href="/analises/comparativo/item/<%= encodeURIComponent(item.referencia) %>" class="btn btn-ghost btn-sm">Limpar</a>
+      </div>
+    </div>
+    <% if (item.historico.length < 2) { %>
+      <p class="field-hint" style="margin-top:0.5rem">É necessário ter pelo menos 2 compras no histórico para comparar.</p>
+    <% } %>
+  </form>
+</section>
+
 <section class="kpi-grid mb-4">
   <div class="stat">
     <p class="stat-label">Compras</p>
     <p class="stat-value"><%= item.qtdCompras %></p>
   </div>
   <div class="stat">
-    <p class="stat-label">Último preço</p>
+    <p class="stat-label"><%= parManual ? 'Preço A' : 'Último preço' %></p>
     <p class="stat-value"><%= item.ultima ? moneyUsd(item.ultima.preco_usd) : '—' %></p>
     <% if (item.deltaPrecoPct != null) { %>
       <p class="stat-meta <%= item.aumentouPreco ? 'text-bad' : (item.diminuiuPreco ? 'text-ok' : '') %>">
@@ -88,8 +135,8 @@
 <section class="dash-grid mb-4">
   <div class="panel">
     <div class="panel-head">
-      <h2>Última compra</h2>
-      <span class="badge badge-ok">atual</span>
+      <h2><%= labelAtual %></h2>
+      <span class="badge badge-ok"><%= parManual ? 'A' : 'atual' %></span>
     </div>
     <div class="panel-body">
       <p class="mono font-semibold">
@@ -122,8 +169,8 @@
 
   <div class="panel">
     <div class="panel-head">
-      <h2>Compra anterior</h2>
-      <% if (item.anterior) { %><span class="badge">anterior</span><% } %>
+      <h2><%= labelAnterior %></h2>
+      <% if (item.anterior) { %><span class="badge"><%= parManual ? 'B' : 'anterior' %></span><% } %>
     </div>
     <div class="panel-body">
       <% if (!item.anterior) { %>
@@ -192,13 +239,17 @@
         </tr>
       </thead>
       <tbody>
-        <% item.historico.forEach(function(h, idx) { %>
+        <% item.historico.forEach(function(h) { %>
+          <%
+            const isA = idAtual && String(h.item_id) === String(idAtual);
+            const isB = idAnterior && String(h.item_id) === String(idAnterior);
+          %>
           <tr>
             <td><%= formatDateBr(h.pedido_created_at) %></td>
             <td class="mono">
               <a class="link-action" href="/pedidos/<%= h.pedido_id %>"><%= h.pedido_codigo %></a>
-              <% if (idx === 0) { %><span class="badge badge-ok">última</span><% } %>
-              <% if (idx === 1) { %><span class="badge">anterior</span><% } %>
+              <% if (isA) { %><span class="badge badge-ok"><%= parManual ? 'A' : 'última' %></span><% } %>
+              <% if (isB) { %><span class="badge"><%= parManual ? 'B' : 'anterior' %></span><% } %>
             </td>
             <td><%= h.fornecedor || '—' %></td>
             <td class="num"><%= moneyUsd(h.preco_usd) %></td>

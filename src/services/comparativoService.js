@@ -4,6 +4,8 @@ const Desembaraco = require('../models/Desembaraco');
 const saldoService = require('./saldoService');
 const { calcularPedido } = require('./desembaracoCalc');
 
+const MODOS = new Set(['automatico', 'dois_pedidos', 'pedido_base']);
+
 function toNum(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
@@ -30,6 +32,16 @@ function diasEntre(dataIso) {
   if (Number.isNaN(d.getTime())) return null;
   const now = new Date();
   return Math.max(0, Math.floor((now - d) / (1000 * 60 * 60 * 24)));
+}
+
+function parseId(v) {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function normalizarModo(modo) {
+  const m = String(modo || 'automatico').trim().toLowerCase();
+  return MODOS.has(m) ? m : 'automatico';
 }
 
 /**
@@ -118,9 +130,35 @@ function rankingFornecedores(compras) {
     .sort((a, b) => a.precoMedio - b.precoMedio);
 }
 
-function montarComparativoItem(referencia, compras) {
-  const ultima = compras[0] || null;
-  const anterior = compras[1] || null;
+function snapshotCompra(row) {
+  if (!row) return null;
+  return {
+    item_id: row.item_id,
+    pedido_id: row.pedido_id,
+    pedido_codigo: row.pedido_codigo,
+    data: row.pedido_created_at,
+    fornecedor: row.fornecedor,
+    fornecedor_id: row.fornecedor_id,
+    preco_usd: toNum(row.preco_usd),
+    quantidade: toNum(row.quantidade),
+    amount_usd: toNum(row.amount_usd),
+    custo_unit_brl: row.custo_unit_brl ?? null,
+  };
+}
+
+/**
+ * Monta comparativo de uma referência.
+ * @param {string} referencia
+ * @param {object[]} compras histórico completo (mais recente primeiro)
+ * @param {{ atual?: object|null, anterior?: object|null }} [par] par explícito; default compras[0]/compras[1]
+ */
+function montarComparativoItem(referencia, compras, par = {}) {
+  const temPar =
+    Object.prototype.hasOwnProperty.call(par, 'atual') ||
+    Object.prototype.hasOwnProperty.call(par, 'anterior');
+  const ultima = temPar ? par.atual || null : compras[0] || null;
+  const anterior = temPar ? par.anterior || null : compras[1] || null;
+
   const precos = compras.map((c) => toNum(c.preco_usd));
   const precoMin = precos.length ? Math.min(...precos) : null;
   const precoMax = precos.length ? Math.max(...precos) : null;
@@ -171,39 +209,31 @@ function montarComparativoItem(referencia, compras) {
       fornUltima.toLowerCase() !== fornAnterior.toLowerCase()
   );
 
+  const snapUltima = ultima
+    ? {
+        ...snapshotCompra(ultima),
+        preco_usd: precoUltima,
+        quantidade: qtdUltima,
+        amount_usd: amountUltima,
+      }
+    : null;
+  const snapAnterior = anterior
+    ? {
+        ...snapshotCompra(anterior),
+        preco_usd: precoAnterior,
+        quantidade: qtdAnterior,
+        amount_usd: amountAnterior,
+      }
+    : null;
+
   return {
     referencia,
-    descricao: ultima?.descricao || compras.find((c) => c.descricao)?.descricao || null,
+    descricao:
+      ultima?.descricao || compras.find((c) => c.descricao)?.descricao || null,
     qtdCompras: compras.length,
     diasDesdeUltima: ultima ? diasEntre(ultima.pedido_created_at) : null,
-    ultima: ultima
-      ? {
-          item_id: ultima.item_id,
-          pedido_id: ultima.pedido_id,
-          pedido_codigo: ultima.pedido_codigo,
-          data: ultima.pedido_created_at,
-          fornecedor: ultima.fornecedor,
-          fornecedor_id: ultima.fornecedor_id,
-          preco_usd: precoUltima,
-          quantidade: qtdUltima,
-          amount_usd: amountUltima,
-          custo_unit_brl: ultima.custo_unit_brl ?? null,
-        }
-      : null,
-    anterior: anterior
-      ? {
-          item_id: anterior.item_id,
-          pedido_id: anterior.pedido_id,
-          pedido_codigo: anterior.pedido_codigo,
-          data: anterior.pedido_created_at,
-          fornecedor: anterior.fornecedor,
-          fornecedor_id: anterior.fornecedor_id,
-          preco_usd: precoAnterior,
-          quantidade: qtdAnterior,
-          amount_usd: amountAnterior,
-          custo_unit_brl: anterior.custo_unit_brl ?? null,
-        }
-      : null,
+    ultima: snapUltima,
+    anterior: snapAnterior,
     deltaPrecoUsd,
     deltaPrecoPct,
     deltaQtd,
@@ -224,11 +254,11 @@ function montarComparativoItem(referencia, compras) {
     piorFornecedor,
     ranking,
     historico: compras,
-    // custo landado (preenchido depois se disponível)
     deltaCustoUnitBrl: null,
     deltaCustoUnitPct: null,
     aumentouCusto: false,
     diminuiuCusto: false,
+    parManual: Boolean(temPar),
   };
 }
 
@@ -347,25 +377,232 @@ function calcularKpis(itens) {
   };
 }
 
+function infoPedidoFromRows(rows, pedidoId) {
+  const row = rows.find((r) => Number(r.pedido_id) === Number(pedidoId));
+  if (!row) return null;
+  return {
+    id: row.pedido_id,
+    codigo: row.pedido_codigo,
+    data: row.pedido_created_at,
+    fornecedor: row.fornecedor,
+  };
+}
+
+function resultadoVazio(extra = {}) {
+  return {
+    itens: [],
+    kpis: calcularKpis([]),
+    emptyReason: null,
+    modoInfo: null,
+    ...extra,
+  };
+}
+
+/**
+ * Compara referências presentes nos dois pedidos (A = atual, B = anterior).
+ */
+function montarDoisPedidos(rows, pedidoA, pedidoB, incluirCusto) {
+  const idA = parseId(pedidoA);
+  const idB = parseId(pedidoB);
+
+  if (!idA || !idB) {
+    return resultadoVazio({ emptyReason: 'selecione_dois_pedidos' });
+  }
+  if (idA === idB) {
+    return resultadoVazio({ emptyReason: 'pedidos_iguais' });
+  }
+
+  const rowsA = rows.filter((r) => Number(r.pedido_id) === idA);
+  const rowsB = rows.filter((r) => Number(r.pedido_id) === idB);
+
+  if (!rowsA.length && !rowsB.length) {
+    return resultadoVazio({ emptyReason: 'pedidos_invalidos' });
+  }
+  if (!rowsA.length || !rowsB.length) {
+    return resultadoVazio({
+      emptyReason: 'pedido_sem_itens',
+      modoInfo: {
+        pedidoA: infoPedidoFromRows(rows, idA) || { id: idA, codigo: String(idA) },
+        pedidoB: infoPedidoFromRows(rows, idB) || { id: idB, codigo: String(idB) },
+      },
+    });
+  }
+
+  const mapA = new Map();
+  for (const r of rowsA) {
+    const key = String(r.referencia || '').trim();
+    if (key && !mapA.has(key)) mapA.set(key, r);
+  }
+  const mapB = new Map();
+  for (const r of rowsB) {
+    const key = String(r.referencia || '').trim();
+    if (key && !mapB.has(key)) mapB.set(key, r);
+  }
+
+  const grupos = agruparPorReferencia(rows);
+  const refsComuns = [...mapA.keys()].filter((k) => mapB.has(k));
+
+  let itens = refsComuns.map((referencia) => {
+    const compras = grupos.get(referencia) || [];
+    const item = montarComparativoItem(referencia, compras, {
+      atual: mapA.get(referencia),
+      anterior: mapB.get(referencia),
+    });
+    return incluirCusto ? aplicarDeltasCusto(item) : item;
+  });
+
+  const modoInfo = {
+    pedidoA: infoPedidoFromRows(rowsA, idA),
+    pedidoB: infoPedidoFromRows(rowsB, idB),
+  };
+
+  if (!itens.length) {
+    return {
+      itens: [],
+      kpis: calcularKpis([]),
+      emptyReason: 'nenhum_item_comum',
+      modoInfo,
+    };
+  }
+
+  return { itens, kpis: null, emptyReason: null, modoInfo };
+}
+
+/**
+ * Itens do pedido base vs compra imediatamente anterior da mesma referência.
+ */
+function montarPedidoBase(rows, pedidoId, incluirCusto) {
+  const id = parseId(pedidoId);
+  if (!id) {
+    return resultadoVazio({ emptyReason: 'selecione_pedido_base' });
+  }
+
+  const rowsBase = rows.filter((r) => Number(r.pedido_id) === id);
+  if (!rowsBase.length) {
+    return resultadoVazio({ emptyReason: 'pedido_sem_itens' });
+  }
+
+  const grupos = agruparPorReferencia(rows);
+  const vistos = new Set();
+  const itens = [];
+
+  for (const row of rowsBase) {
+    const referencia = String(row.referencia || '').trim();
+    if (!referencia || vistos.has(referencia)) continue;
+    vistos.add(referencia);
+
+    const compras = grupos.get(referencia) || [];
+    const idx = compras.findIndex(
+      (c) =>
+        Number(c.item_id) === Number(row.item_id) ||
+        (Number(c.pedido_id) === id &&
+          String(c.referencia).trim() === referencia)
+    );
+    const atual = idx >= 0 ? compras[idx] : row;
+    const anterior = idx >= 0 ? compras[idx + 1] || null : compras[1] || null;
+
+    const item = montarComparativoItem(referencia, compras, {
+      atual,
+      anterior,
+    });
+    itens.push(incluirCusto ? aplicarDeltasCusto(item) : item);
+  }
+
+  const modoInfo = {
+    pedidoBase: infoPedidoFromRows(rowsBase, id),
+  };
+
+  if (!itens.length) {
+    return {
+      itens: [],
+      kpis: calcularKpis([]),
+      emptyReason: 'pedido_sem_itens',
+      modoInfo,
+    };
+  }
+
+  const comHistorico = itens.filter((i) => i.anterior);
+  if (!comHistorico.length) {
+    return {
+      itens,
+      kpis: null,
+      emptyReason: null,
+      modoInfo,
+      aviso: 'pedido_sem_historico_anterior',
+    };
+  }
+
+  return { itens, kpis: null, emptyReason: null, modoInfo };
+}
+
+function montarAutomatico(rows, incluirCusto) {
+  const grupos = agruparPorReferencia(rows);
+  const itens = [...grupos.entries()].map(([referencia, compras]) => {
+    const item = montarComparativoItem(referencia, compras);
+    return incluirCusto ? aplicarDeltasCusto(item) : item;
+  });
+  return { itens, kpis: null, emptyReason: null, modoInfo: null };
+}
+
 async function listarComparativo(filtros = {}, { incluirCusto = false } = {}) {
   let rows = await carregarHistorico();
   if (incluirCusto) {
     rows = await enriquecerCustoLandado(rows);
   }
 
-  const grupos = agruparPorReferencia(rows);
-  let itens = [...grupos.entries()].map(([referencia, compras]) => {
-    const item = montarComparativoItem(referencia, compras);
-    return incluirCusto ? aplicarDeltasCusto(item) : item;
-  });
+  const modo = normalizarModo(filtros.modo);
+  let resultado;
 
-  itens = filtrarItens(itens, filtros);
-  const kpis = calcularKpis(itens);
+  if (modo === 'dois_pedidos') {
+    resultado = montarDoisPedidos(
+      rows,
+      filtros.pedido_a,
+      filtros.pedido_b,
+      incluirCusto
+    );
+  } else if (modo === 'pedido_base') {
+    resultado = montarPedidoBase(rows, filtros.pedido_id, incluirCusto);
+  } else {
+    resultado = montarAutomatico(rows, incluirCusto);
+  }
 
-  return { itens, kpis };
+  let itens = resultado.itens || [];
+  if (!resultado.emptyReason || itens.length) {
+    itens = filtrarItens(itens, filtros);
+  }
+
+  const kpis = resultado.kpis || calcularKpis(itens);
+  const emptyReason =
+    !itens.length && resultado.emptyReason
+      ? resultado.emptyReason
+      : !itens.length
+        ? 'nenhum_item_filtro'
+        : null;
+
+  return {
+    itens,
+    kpis,
+    modo,
+    emptyReason,
+    modoInfo: resultado.modoInfo || null,
+    aviso: resultado.aviso || null,
+  };
 }
 
-async function detalheReferencia(referencia, { incluirCusto = true } = {}) {
+function acharCompraNoHistorico(compras, compraId) {
+  const id = parseId(compraId);
+  if (!id) return null;
+  return (
+    compras.find((c) => Number(c.item_id) === id) ||
+    compras.find((c) => Number(c.pedido_id) === id) ||
+    null
+  );
+}
+
+async function detalheReferencia(
+  referencia,
+  { incluirCusto = true, compraA = null, compraB = null } = {}
+) {
   const ref = String(referencia || '').trim();
   if (!ref) return null;
 
@@ -379,7 +616,30 @@ async function detalheReferencia(referencia, { incluirCusto = true } = {}) {
     rows = await enriquecerCustoLandado(rows);
   }
 
-  const item = aplicarDeltasCusto(montarComparativoItem(rows[0].referencia, rows));
+  const idA = parseId(compraA);
+  const idB = parseId(compraB);
+  let par = undefined;
+  let parEscolhido = false;
+
+  if (idA && idB && idA !== idB) {
+    const atual = acharCompraNoHistorico(rows, idA);
+    const anterior = acharCompraNoHistorico(rows, idB);
+    if (atual && anterior) {
+      par = { atual, anterior };
+      parEscolhido = true;
+    }
+  }
+
+  const item = aplicarDeltasCusto(
+    montarComparativoItem(
+      rows[0].referencia,
+      rows,
+      parEscolhido ? par : undefined
+    )
+  );
+  item.parEscolhido = parEscolhido;
+  item.compraAId = item.ultima?.item_id != null ? Number(item.ultima.item_id) : null;
+  item.compraBId = item.anterior?.item_id != null ? Number(item.anterior.item_id) : null;
   return item;
 }
 
@@ -393,4 +653,5 @@ module.exports = {
   detalheReferencia,
   resumoHub,
   carregarHistorico,
+  normalizarModo,
 };

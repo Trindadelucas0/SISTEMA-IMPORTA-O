@@ -1,15 +1,26 @@
 <%- include('../partials/header') %>
 
-<section class="page-header mb-4 flex flex-wrap items-end justify-between gap-3">
+<%
+  const modoAtual = typeof modo !== 'undefined' ? modo : 'automatico';
+  const info = typeof modoInfo !== 'undefined' ? modoInfo : null;
+  let parLabel = '';
+  if (modoAtual === 'dois_pedidos' && info?.pedidoA && info?.pedidoB) {
+    parLabel = info.pedidoA.codigo + ' vs ' + info.pedidoB.codigo;
+  } else if (modoAtual === 'pedido_base' && info?.pedidoBase) {
+    parLabel = 'Base: ' + info.pedidoBase.codigo;
+  }
+%>
+
+<section class="page-header mb-3 flex flex-wrap items-end justify-between gap-3">
   <div>
     <p class="page-eyebrow">Análises</p>
-    <h1 class="page-title">Comparativo de última compra</h1>
-    <p class="page-sub">Por referência do item: última compra vs anterior, com fornecedor e variação de preço/quantidade.</p>
+    <h1 class="page-title"><%= typeof pageTitle !== 'undefined' ? pageTitle : title %></h1>
+    <p class="page-sub"><%= typeof pageSub !== 'undefined' ? pageSub : 'Última vs anterior por referência.' %></p>
   </div>
   <a href="/analises" class="btn btn-ghost btn-sm">Voltar ao hub</a>
 </section>
 
-<section class="kpi-grid mb-4">
+<section class="kpi-grid kpi-grid-5 mb-3">
   <div class="stat">
     <p class="stat-label">Itens</p>
     <p class="stat-value"><%= kpis.totalItens %></p>
@@ -27,25 +38,74 @@
     <p class="stat-label">Trocas fornecedor</p>
     <p class="stat-value"><%= kpis.trocas %></p>
   </div>
-</section>
-
-<section class="kpi-grid mb-4" style="grid-template-columns:repeat(auto-fit,minmax(10rem,1fr))">
   <div class="stat">
     <p class="stat-label">Média Δ preço</p>
     <p class="stat-value"><%= kpis.mediaVariacaoPct != null ? (kpis.mediaVariacaoPct > 0 ? '+' : '') + numberBr(kpis.mediaVariacaoPct, 1) + '%' : '—' %></p>
   </div>
 </section>
 
-<section class="panel mb-4">
-  <div class="panel-head"><h2>Filtros</h2></div>
-  <form method="GET" action="/analises/comparativo" class="panel-body">
-    <div class="form-grid form-grid-2">
+<section class="panel mb-3">
+  <form method="GET" action="/analises/comparativo" class="panel-body" id="form-comparativo">
+    <div class="filters-inline-checks" style="margin-bottom:0.75rem">
+      <span class="label" style="margin:0">Modo</span>
+      <label class="flex items-center gap-2">
+        <input type="radio" name="modo" value="automatico" <%= modoAtual === 'automatico' ? 'checked' : '' %> data-modo-toggle>
+        Automático (última vs anterior)
+      </label>
+      <label class="flex items-center gap-2">
+        <input type="radio" name="modo" value="dois_pedidos" <%= modoAtual === 'dois_pedidos' ? 'checked' : '' %> data-modo-toggle>
+        Dois pedidos
+      </label>
+      <label class="flex items-center gap-2">
+        <input type="radio" name="modo" value="pedido_base" <%= modoAtual === 'pedido_base' ? 'checked' : '' %> data-modo-toggle>
+        Pedido base
+      </label>
+    </div>
+
+    <div class="filters-inline" data-modo-panel="dois_pedidos" style="<%= modoAtual === 'dois_pedidos' ? '' : 'display:none' %>;margin-bottom:0.75rem">
+      <div>
+        <label class="label" for="pedido_a">Pedido A (atual)</label>
+        <select class="field" id="pedido_a" name="pedido_a">
+          <option value="">Selecione</option>
+          <% pedidos.forEach(function(p) { %>
+            <option value="<%= p.id %>" <%= String(filtros.pedido_a) === String(p.id) ? 'selected' : '' %>>
+              <%= p.codigo %> · <%= formatDateBr(p.created_at) %><%= p.fornecedor_nome ? ' · ' + p.fornecedor_nome : '' %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="label" for="pedido_b">Pedido B (comparar)</label>
+        <select class="field" id="pedido_b" name="pedido_b">
+          <option value="">Selecione</option>
+          <% pedidos.forEach(function(p) { %>
+            <option value="<%= p.id %>" <%= String(filtros.pedido_b) === String(p.id) ? 'selected' : '' %>>
+              <%= p.codigo %> · <%= formatDateBr(p.created_at) %><%= p.fornecedor_nome ? ' · ' + p.fornecedor_nome : '' %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+    </div>
+
+    <div data-modo-panel="pedido_base" style="<%= modoAtual === 'pedido_base' ? '' : 'display:none' %>;margin-bottom:0.75rem">
+      <label class="label" for="pedido_id">Pedido base</label>
+      <select class="field" id="pedido_id" name="pedido_id">
+        <option value="">Selecione</option>
+        <% pedidos.forEach(function(p) { %>
+          <option value="<%= p.id %>" <%= String(filtros.pedido_id) === String(p.id) ? 'selected' : '' %>>
+            <%= p.codigo %> · <%= formatDateBr(p.created_at) %><%= p.fornecedor_nome ? ' · ' + p.fornecedor_nome : '' %>
+          </option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="filters-inline">
       <div>
         <label class="label" for="q">Busca</label>
         <input class="field" id="q" name="q" value="<%= filtros.q || '' %>" placeholder="Referência ou descrição">
       </div>
       <div>
-        <label class="label" for="fornecedor_id">Fornecedor (última compra)</label>
+        <label class="label" for="fornecedor_id">Fornecedor</label>
         <select class="field" id="fornecedor_id" name="fornecedor_id">
           <option value="">Todos</option>
           <% fornecedores.forEach(function(f) { %>
@@ -53,40 +113,48 @@
           <% }) %>
         </select>
       </div>
-      <div class="flex flex-wrap items-center gap-4" style="grid-column:1/-1">
-        <label class="flex items-center gap-2">
-          <input type="checkbox" name="somenteVariacao" value="1" <%= filtros.somenteVariacao ? 'checked' : '' %>>
-          Só com variação de preço
-        </label>
-        <label class="flex items-center gap-2">
-          <input type="checkbox" name="somenteTroca" value="1" <%= filtros.somenteTroca ? 'checked' : '' %>>
-          Só troca de fornecedor
-        </label>
+      <div class="filters-inline-actions">
+        <button type="submit" class="btn btn-primary btn-sm">Comparar</button>
+        <a href="/analises/comparativo" class="btn btn-ghost btn-sm">Limpar</a>
       </div>
     </div>
-    <div class="form-actions form-actions-start" style="margin-top:0.75rem">
-      <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
-      <a href="/analises/comparativo" class="btn btn-ghost btn-sm">Limpar</a>
+    <div class="filters-inline-checks" style="margin-top:0.65rem">
+      <label class="flex items-center gap-2">
+        <input type="checkbox" name="somenteVariacao" value="1" <%= filtros.somenteVariacao ? 'checked' : '' %>>
+        Só com variação de preço
+      </label>
+      <label class="flex items-center gap-2">
+        <input type="checkbox" name="somenteTroca" value="1" <%= filtros.somenteTroca ? 'checked' : '' %>>
+        Só troca de fornecedor
+      </label>
     </div>
   </form>
 </section>
 
+<% if (typeof aviso !== 'undefined' && aviso === 'pedido_sem_historico_anterior' && itens.length) { %>
+  <p class="alert alert-warn" role="status">Os itens deste pedido ainda não têm compra anterior para comparar variação.</p>
+<% } %>
+
 <% if (!itens.length) { %>
-  <p class="empty-state">Nenhum item encontrado com esses filtros.</p>
+  <p class="empty-state"><%= typeof emptyMessage !== 'undefined' ? emptyMessage : 'Nenhum item encontrado com esses filtros.' %></p>
 <% } else { %>
   <div class="panel">
-    <p class="table-scroll-hint px-3 pt-2">Deslize a tabela para o lado para ver mais colunas.</p>
-    <div class="table-panel" style="border:0;border-radius:0">
+    <div class="panel-head flex flex-wrap items-center justify-between gap-2">
+      <h2>
+        <%= itens.length %> item<%= itens.length === 1 ? '' : 's' %>
+        <% if (parLabel) { %><span class="stat-meta" style="font-weight:400;margin-left:0.35rem"><%= parLabel %></span><% } %>
+      </h2>
+      <p class="table-scroll-hint" style="margin:0;padding:0">Deslize para ver mais colunas</p>
+    </div>
+    <div class="table-panel table-compact" style="border:0;border-radius:0">
       <table>
         <thead>
           <tr>
             <th>Referência</th>
-            <th class="col-hide-sm">Descrição</th>
-            <th>Último pedido</th>
+            <th><%= modoAtual === 'dois_pedidos' ? 'Pedido A' : (modoAtual === 'pedido_base' ? 'Pedido' : 'Último') %></th>
             <th>Fornecedor</th>
-            <th>Preço</th>
-            <th class="col-hide-sm">Qtd</th>
-            <th class="col-hide-sm">Anterior</th>
+            <th>Preço / Qtd</th>
+            <th class="col-hide-sm"><%= modoAtual === 'dois_pedidos' ? 'Pedido B' : 'Anterior' %></th>
             <th>Δ preço</th>
             <th class="col-hide-sm">Δ qtd</th>
             <th class="col-hide-sm">Melhor forn.</th>
@@ -96,24 +164,42 @@
         <tbody>
           <% itens.forEach(function(it) { %>
             <tr>
-              <td class="mono font-medium">
-                <a class="link-action" href="/analises/comparativo/item/<%= encodeURIComponent(it.referencia) %>"><%= it.referencia %></a>
+              <td>
+                <div class="cell-stack">
+                  <a class="link-action mono font-medium" href="/analises/comparativo/item/<%= encodeURIComponent(it.referencia) %>"><%= it.referencia %></a>
+                  <% if (it.descricao) { %>
+                    <span class="stat-meta cell-clip cell-clip-md" title="<%= it.descricao %>"><%= it.descricao %></span>
+                  <% } %>
+                </div>
               </td>
-              <td class="col-hide-sm text-xs" style="color:var(--muted)"><%= it.descricao || '—' %></td>
-              <td class="mono">
+              <td>
                 <% if (it.ultima) { %>
-                  <a class="link-action" href="/pedidos/<%= it.ultima.pedido_id %>"><%= it.ultima.pedido_codigo %></a>
-                  <div class="stat-meta"><%= formatDateBr(it.ultima.data) %></div>
+                  <div class="cell-stack">
+                    <a class="link-action mono" href="/pedidos/<%= it.ultima.pedido_id %>"><%= it.ultima.pedido_codigo %></a>
+                    <span class="stat-meta"><%= formatDateBr(it.ultima.data) %></span>
+                  </div>
                 <% } else { %>—<% } %>
               </td>
-              <td><%= it.ultima?.fornecedor || '—' %></td>
-              <td class="num"><%= it.ultima ? moneyUsd(it.ultima.preco_usd) : '—' %></td>
-              <td class="num col-hide-sm"><%= it.ultima ? numberBr(it.ultima.quantidade, 0) : '—' %></td>
+              <td>
+                <% if (it.ultima?.fornecedor) { %>
+                  <span class="cell-clip cell-clip-md" title="<%= it.ultima.fornecedor %>"><%= it.ultima.fornecedor %></span>
+                <% } else { %>—<% } %>
+              </td>
+              <td class="num">
+                <% if (it.ultima) { %>
+                  <div class="cell-stack">
+                    <span><%= moneyUsd(it.ultima.preco_usd) %></span>
+                    <span class="stat-meta"><%= numberBr(it.ultima.quantidade, 0) %> un</span>
+                  </div>
+                <% } else { %>—<% } %>
+              </td>
               <td class="col-hide-sm">
                 <% if (it.anterior) { %>
-                  <span class="mono"><%= it.anterior.pedido_codigo %></span>
-                  · <%= it.anterior.fornecedor || '—' %>
-                  · <%= moneyUsd(it.anterior.preco_usd) %>
+                  <div class="cell-stack">
+                    <span class="mono"><%= it.anterior.pedido_codigo %></span>
+                    <span class="stat-meta cell-clip" title="<%= it.anterior.fornecedor || '' %>"><%= it.anterior.fornecedor || '—' %></span>
+                    <span class="stat-meta mono"><%= moneyUsd(it.anterior.preco_usd) %></span>
+                  </div>
                 <% } else { %>—<% } %>
               </td>
               <td class="num">
@@ -138,17 +224,21 @@
                   0%
                 <% } %>
               </td>
-              <td class="col-hide-sm text-xs">
+              <td class="col-hide-sm">
                 <% if (it.melhorFornecedor) { %>
-                  <%= it.melhorFornecedor.fornecedor %>
-                  <div class="stat-meta mono"><%= moneyUsd(it.melhorFornecedor.precoMedio) %></div>
+                  <div class="cell-stack">
+                    <span class="cell-clip" title="<%= it.melhorFornecedor.fornecedor %>"><%= it.melhorFornecedor.fornecedor %></span>
+                    <span class="stat-meta mono"><%= moneyUsd(it.melhorFornecedor.precoMedio) %></span>
+                  </div>
                 <% } else { %>—<% } %>
               </td>
               <td>
-                <% if (it.aumentouPreco) { %><span class="badge badge-danger">alta</span><% } %>
-                <% if (it.diminuiuPreco) { %><span class="badge badge-ok">queda</span><% } %>
-                <% if (it.trocouFornecedor) { %><span class="badge badge-warn">troca forn.</span><% } %>
-                <% if (!it.aumentouPreco && !it.diminuiuPreco && !it.trocouFornecedor) { %>—<% } %>
+                <div class="cell-stack">
+                  <% if (it.aumentouPreco) { %><span class="badge badge-danger">alta</span><% } %>
+                  <% if (it.diminuiuPreco) { %><span class="badge badge-ok">queda</span><% } %>
+                  <% if (it.trocouFornecedor) { %><span class="badge badge-warn">troca</span><% } %>
+                  <% if (!it.aumentouPreco && !it.diminuiuPreco && !it.trocouFornecedor) { %>—<% } %>
+                </div>
               </td>
             </tr>
           <% }) %>
@@ -157,5 +247,23 @@
     </div>
   </div>
 <% } %>
+
+<script>
+(function () {
+  var form = document.getElementById('form-comparativo');
+  if (!form) return;
+  var radios = form.querySelectorAll('[data-modo-toggle]');
+  var panels = form.querySelectorAll('[data-modo-panel]');
+  function sync() {
+    var modo = 'automatico';
+    radios.forEach(function (r) { if (r.checked) modo = r.value; });
+    panels.forEach(function (p) {
+      p.style.display = p.getAttribute('data-modo-panel') === modo ? '' : 'none';
+    });
+  }
+  radios.forEach(function (r) { r.addEventListener('change', sync); });
+  sync();
+})();
+</script>
 
 <%- include('../partials/footer') %>

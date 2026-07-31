@@ -69,23 +69,44 @@
     <h2 class="form-section-title">Prazos</h2>
     <div class="form-grid form-grid-2">
       <div>
-        <label class="label" for="data_inicio_fabricacao">Início da fabricação</label>
-        <input
-          class="field"
-          type="date"
-          id="data_inicio_fabricacao"
-          name="data_inicio_fabricacao"
-          value="<%= pedido?.data_inicio_fabricacao || '' %>"
-        >
+        <label class="label" for="data_inicio_fabricacao_br">Início da fabricação</label>
+        <div class="date-br">
+          <input
+            class="field"
+            type="text"
+            id="data_inicio_fabricacao_br"
+            inputmode="numeric"
+            placeholder="dd/mm/aaaa"
+            maxlength="10"
+            autocomplete="off"
+            value="<%= pedido?.data_inicio_fabricacao ? formatDateBr(pedido.data_inicio_fabricacao) : '' %>"
+          >
+          <span class="date-br-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2"/>
+              <path d="M16 2v4M8 2v4M3 10h18"/>
+            </svg>
+          </span>
+          <input
+            class="date-br-native"
+            type="date"
+            id="data_inicio_fabricacao"
+            name="data_inicio_fabricacao"
+            value="<%= pedido?.data_inicio_fabricacao || '' %>"
+            aria-label="Abrir calendário"
+            tabindex="-1"
+          >
+        </div>
         <p class="field-hint">Base para a data prevista de chegada.</p>
       </div>
       <div>
-        <label class="label" for="data_prevista_chegada">Prevista de chegada</label>
+        <label class="label" for="data_prevista_chegada_br">Prevista de chegada</label>
         <input
           class="field"
-          type="date"
-          id="data_prevista_chegada"
-          value="<%= pedido?.data_prevista_chegada || '' %>"
+          type="text"
+          id="data_prevista_chegada_br"
+          value="<%= pedido?.data_prevista_chegada ? formatDateBr(pedido.data_prevista_chegada) : '' %>"
+          placeholder="dd/mm/aaaa"
           readonly
           tabindex="-1"
         >
@@ -110,9 +131,39 @@
 
 <script>
 (function () {
-  var inicio = document.getElementById('data_inicio_fabricacao');
-  var prevista = document.getElementById('data_prevista_chegada');
-  if (!inicio || !prevista) return;
+  var inicioBr = document.getElementById('data_inicio_fabricacao_br');
+  var inicioIso = document.getElementById('data_inicio_fabricacao');
+  var previstaBr = document.getElementById('data_prevista_chegada_br');
+  if (!inicioBr || !inicioIso || !previstaBr) return;
+
+  function pad2(n) {
+    return String(n).padStart(2, '0');
+  }
+
+  function isoToBr(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return '';
+    var parts = iso.split('-');
+    return parts[2] + '/' + parts[1] + '/' + parts[0];
+  }
+
+  function brToIso(br) {
+    var m = String(br || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!m) return '';
+    var day = Number(m[1]);
+    var month = Number(m[2]);
+    var year = Number(m[3]);
+    if (month < 1 || month > 12 || day < 1 || day > 31) return '';
+    var dt = new Date(Date.UTC(year, month - 1, day));
+    if (dt.getUTCFullYear() !== year || dt.getUTCMonth() !== month - 1 || dt.getUTCDate() !== day) return '';
+    return year + '-' + pad2(month) + '-' + pad2(day);
+  }
+
+  function maskBrDate(raw) {
+    var digits = String(raw || '').replace(/\D/g, '').slice(0, 8);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) return digits.slice(0, 2) + '/' + digits.slice(2);
+    return digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
+  }
 
   function addDaysIso(dateStr, days) {
     if (!dateStr) return '';
@@ -123,12 +174,41 @@
     return dt.toISOString().slice(0, 10);
   }
 
-  function syncPrevista() {
-    prevista.value = inicio.value ? addDaysIso(inicio.value, 90) : '';
+  function syncPrevista(iso) {
+    var chegada = iso ? addDaysIso(iso, 90) : '';
+    previstaBr.value = isoToBr(chegada);
   }
 
-  inicio.addEventListener('change', syncPrevista);
-  inicio.addEventListener('input', syncPrevista);
+  function applyIso(iso) {
+    inicioIso.value = iso || '';
+    if (iso) inicioBr.value = isoToBr(iso);
+    syncPrevista(iso);
+  }
+
+  inicioBr.addEventListener('input', function () {
+    inicioBr.value = maskBrDate(inicioBr.value);
+    var iso = brToIso(inicioBr.value);
+    inicioIso.value = iso;
+    syncPrevista(iso);
+  });
+
+  inicioBr.addEventListener('blur', function () {
+    var iso = brToIso(inicioBr.value);
+    if (iso) {
+      applyIso(iso);
+      return;
+    }
+    if (!inicioBr.value.trim()) {
+      applyIso('');
+      return;
+    }
+    inicioIso.value = '';
+    syncPrevista('');
+  });
+
+  inicioIso.addEventListener('change', function () {
+    applyIso(inicioIso.value || '');
+  });
 })();
 </script>
 
