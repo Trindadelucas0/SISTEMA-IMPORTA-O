@@ -12,11 +12,11 @@
 
 <section class="page-header mb-4 flex flex-wrap items-start justify-between gap-3">
   <div>
-    <p class="page-eyebrow">Desembaraço</p>
+    <p class="page-eyebrow">Compras</p>
     <div class="flex flex-wrap items-center gap-2">
       <h1 class="page-title mono"><%= pedido.codigo %></h1>
+      <%- include('../partials/status-pedido', { pedidoId: pedido.id, status: pedido.status }) %>
       <span class="badge <%= badgeClass %>"><%= saldo.coberto ? 'coberto' : 'pendente' %></span>
-      <span class="badge"><%= pedido.status %></span>
     </div>
     <p class="page-sub">
       Amarelo = digitação manual (base J e custo L).
@@ -24,6 +24,9 @@
     </p>
   </div>
   <div class="toolbar">
+    <a href="/desembaraco/<%= pedido.id %>/relatorio" class="btn btn-ghost btn-sm" target="_blank" rel="noopener">Imprimir</a>
+    <a href="/desembaraco/<%= pedido.id %>/relatorio?autoPrint=1" class="btn btn-ghost btn-sm" target="_blank" rel="noopener">PDF</a>
+    <a href="/desembaraco/<%= pedido.id %>/excel" class="btn btn-ghost btn-sm">Excel</a>
     <a href="/saldo" class="btn btn-ghost btn-sm">Saldo</a>
     <a href="/pedidos/<%= pedido.id %>" class="btn btn-ghost btn-sm">Voltar ao pedido</a>
   </div>
@@ -154,47 +157,55 @@
     <div class="desembaraco-sheet sheet-wrap sheet mb-3">
       <table>
         <thead>
-          <tr>
-            <th class="col-sticky">REF</th>
-            <th>Qtd</th>
-            <th>Unit USD</th>
-            <th>Amount USD</th>
-            <th>%</th>
-            <th>Custo R$</th>
-            <th>Custo unit R$</th>
+          <tr class="sheet-group-row">
+            <th colspan="3" class="grp grp-id col-sticky">Identificação</th>
+            <th colspan="3" class="grp grp-usd">USD</th>
+            <th colspan="2" class="grp grp-produto">Produto R$</th>
+            <th colspan="14" class="grp grp-imposto">Impostos</th>
+            <th colspan="3" class="grp grp-outras">Outras</th>
+            <th colspan="1" class="grp grp-resultado">Resultado</th>
+          </tr>
+          <tr class="sheet-field-row">
+            <th class="col-sticky grp-start-id">REF</th>
             <th>NCM</th>
-            <th class="col-edit">Base desemb. J</th>
-            <th>II %</th>
-            <th>II valor</th>
-            <th>IPI %</th>
-            <th>IPI valor</th>
-            <th>PIS %</th>
-            <th>PIS R$</th>
-            <th>COFINS %</th>
-            <th>COFINS</th>
-            <th>BC ICMS</th>
-            <th>ICMS %</th>
-            <th>ICMS valor</th>
-            <th>Custo imposto</th>
-            <th>% imposto</th>
-            <th>Outras desp.</th>
-            <th>% s/ Custo unit R$</th>
-            <th>Outras unit</th>
-            <th>Total custo unit</th>
+            <th class="num grp-end-id">Qtd</th>
+            <th class="num grp-start-usd">Unit USD</th>
+            <th class="num">Amount USD</th>
+            <th class="num grp-end-usd">%</th>
+            <th class="num grp-start-produto">Custo R$</th>
+            <th class="num grp-end-produto">Custo unit R$</th>
+            <th class="col-edit num grp-start-imposto">Base desemb. J</th>
+            <th class="num">II %</th>
+            <th class="num">II valor</th>
+            <th class="num">IPI %</th>
+            <th class="num">IPI valor</th>
+            <th class="num">PIS %</th>
+            <th class="num">PIS R$</th>
+            <th class="num">COFINS %</th>
+            <th class="num">COFINS</th>
+            <th class="num">BC ICMS</th>
+            <th class="num">ICMS %</th>
+            <th class="num">ICMS valor</th>
+            <th class="num">Custo imposto</th>
+            <th class="num grp-end-imposto">% imposto</th>
+            <th class="num grp-start-outras">Outras desp.</th>
+            <th class="num">% s/ Custo unit R$</th>
+            <th class="num grp-end-outras">Outras unit</th>
+            <th class="num col-highlight grp-start-resultado grp-end-resultado">Total custo unit</th>
           </tr>
         </thead>
         <tbody>
           <% linhas.forEach(function(linha) { %>
             <tr>
-              <td class="col-sticky" title="<%= linha.descricao || '' %>"><%= linha.referencia %></td>
-              <td class="num"><%= numberBr(linha.quantidade, 0) %></td>
-              <td class="num"><%= numberBr(linha.preco_usd, 2) %></td>
-              <td class="num"><%= numberBr(linha.amount_usd, 2) %></td>
-              <td class="num"><%= percentBr(linha.pct_rateio) %></td>
-              <td class="num"><%= saldo.coberto ? numberBr(linha.custo_rs, 2) : '—' %></td>
-              <td class="num"><%= saldo.coberto ? numberBr(linha.custo_unit_rs, 2) : '—' %></td>
+              <td class="col-sticky grp-start-id" title="<%= linha.descricao || '' %>"><%= linha.referencia %></td>
               <td class="mono"><%= linha.ncm || '—' %></td>
-              <td class="col-edit-cell">
+              <td class="num grp-end-id"><%= numberBr(linha.quantidade, 0) %></td>
+              <td class="num grp-start-usd"><%= numberBr(linha.preco_usd, 2) %></td>
+              <td class="num"><%= numberBr(linha.amount_usd, 2) %></td>
+              <td class="num grp-end-usd"><%= percentBr(linha.pct_rateio) %></td>
+              <td class="num grp-start-produto"><%= saldo.coberto ? numberBr(linha.custo_rs, 2) : '—' %></td>
+              <td class="num grp-end-produto"><%= saldo.coberto ? numberBr(linha.custo_unit_rs, 2) : '—' %></td>
+              <td class="col-edit-cell grp-start-imposto">
                 <input
                   class="input-yellow field-num"
                   type="text"
@@ -217,25 +228,29 @@
               <td class="num"><%= percentBr(linha.aliq_icms) %></td>
               <td class="num"><%= numberBr(linha.valor_icms, 2) %></td>
               <td class="num"><%= numberBr(linha.custo_imposto, 2) %></td>
-              <td class="num"><%= saldo.coberto && linha.pct_imposto != null ? percentBr(linha.pct_imposto) : '—' %></td>
-              <td class="num"><%= numberBr(linha.outras_despesas, 2) %></td>
+              <td class="num grp-end-imposto"><%= saldo.coberto && linha.pct_imposto != null ? percentBr(linha.pct_imposto) : '—' %></td>
+              <td class="num grp-start-outras"><%= numberBr(linha.outras_despesas, 2) %></td>
               <td class="num"><%= saldo.coberto && linha.pct_outras_despesas != null ? percentBr(linha.pct_outras_despesas) : '—' %></td>
-              <td class="num"><%= numberBr(linha.outras_despesas_unit, 2) %></td>
-              <td class="num font-semibold"><%= saldo.coberto ? numberBr(linha.total_custo_unit, 2) : '—' %></td>
+              <td class="num grp-end-outras"><%= numberBr(linha.outras_despesas_unit, 2) %></td>
+              <td class="num font-semibold col-highlight grp-start-resultado grp-end-resultado"><%= saldo.coberto ? numberBr(linha.total_custo_unit, 2) : '—' %></td>
             </tr>
           <% }) %>
           <tr class="sheet-total">
-            <td class="col-sticky">TOTAL</td>
-            <td class="num"><%= numberBr(totais.quantidade, 0) %></td>
+            <td class="col-sticky grp-start-id">TOTAL</td>
             <td></td>
+            <td class="num grp-end-id"><%= numberBr(totais.quantidade, 0) %></td>
+            <td class="grp-start-usd"></td>
             <td class="num"><%= numberBr(totais.amount_usd, 2) %></td>
-            <td class="num">100%</td>
-            <td class="num"><%= saldo.coberto ? numberBr(totais.custo_rs, 2) : '—' %></td>
-            <td colspan="14"></td>
+            <td class="num grp-end-usd">100%</td>
+            <td class="num grp-start-produto"><%= saldo.coberto ? numberBr(totais.custo_rs, 2) : '—' %></td>
+            <td class="grp-end-produto"></td>
+            <td class="grp-start-imposto" colspan="12"></td>
             <td class="num"><%= numberBr(totais.custo_imposto, 2) %></td>
+            <td class="grp-end-imposto"></td>
+            <td class="num grp-start-outras"><%= numberBr(totais.outras_despesas, 2) %></td>
             <td></td>
-            <td class="num"><%= numberBr(totais.outras_despesas, 2) %></td>
-            <td colspan="3"></td>
+            <td class="grp-end-outras"></td>
+            <td class="col-highlight grp-start-resultado grp-end-resultado"></td>
           </tr>
         </tbody>
       </table>

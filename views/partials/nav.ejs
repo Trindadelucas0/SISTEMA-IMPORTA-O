@@ -1,16 +1,50 @@
 <header class="app-nav">
   <div class="nav-inner app-shell">
-    <a href="/" class="nav-brand brand">
-      <span class="nav-mark" aria-hidden="true">PI</span>
-      Paulo<span>Importação</span>
+    <a href="<%= typeof user !== 'undefined' && user ? homePath() : '/login' %>" class="nav-brand brand">
+      <span class="nav-mark" aria-hidden="true">IM</span>
+      Importação
     </a>
-    <nav class="nav-menu" aria-label="Principal">
-      <a href="/" class="nav-link <%= currentPath === '/' ? 'nav-link-active' : '' %>">Dashboard</a>
-      <a href="/pedidos" class="nav-link <%= currentPath.startsWith('/pedidos') ? 'nav-link-active' : '' %>">Pedidos</a>
-      <a href="/produtos" class="nav-link <%= currentPath.startsWith('/produtos') ? 'nav-link-active' : '' %>">Produtos</a>
-      <a href="/pagamentos" class="nav-link <%= currentPath.startsWith('/pagamentos') ? 'nav-link-active' : '' %>">Pagamentos</a>
-      <a href="/saldo" class="nav-link <%= currentPath.startsWith('/saldo') ? 'nav-link-active' : '' %>">Saldo</a>
-      <a href="/desembaraco" class="nav-link <%= currentPath.startsWith('/desembaraco') ? 'nav-link-active' : '' %>">Desembaraço</a>
-    </nav>
+    <% if (typeof user !== 'undefined' && user) { %>
+      <nav class="nav-menu" aria-label="Principal">
+        <% if (temPermissao('dashboard')) { %>
+          <a href="/" class="nav-link <%= currentPath === '/' ? 'nav-link-active' : '' %>">Dashboard</a>
+        <% } %>
+        <% if (temPermissao('pedidos')) { %>
+          <a href="/pedidos" class="nav-link <%= currentPath.startsWith('/pedidos') ? 'nav-link-active' : '' %>">Pedidos</a>
+        <% } %>
+        <% if (temPermissao('produtos')) { %>
+          <a href="/produtos" class="nav-link <%= currentPath.startsWith('/produtos') ? 'nav-link-active' : '' %>">Produtos</a>
+        <% } %>
+        <% if (temPermissao('fornecedores')) { %>
+          <a href="/fornecedores" class="nav-link <%= currentPath.startsWith('/fornecedores') ? 'nav-link-active' : '' %>">Fornecedores</a>
+        <% } %>
+        <% if (temPermissao('pagamentos')) { %>
+          <a href="/pagamentos" class="nav-link <%= currentPath.startsWith('/pagamentos') ? 'nav-link-active' : '' %>">Pagamentos</a>
+        <% } %>
+        <% if (temPermissao('saldo')) { %>
+          <a href="/saldo" class="nav-link <%= currentPath.startsWith('/saldo') ? 'nav-link-active' : '' %>">Saldo</a>
+        <% } %>
+        <% if (temPermissao('desembaraco')) { %>
+          <a href="/desembaraco" class="nav-link <%= currentPath.startsWith('/desembaraco') ? 'nav-link-active' : '' %>">Compras</a>
+        <% } %>
+        <% if (temPermissao('analises')) { %>
+          <a href="/analises" class="nav-link <%= currentPath.startsWith('/analises') ? 'nav-link-active' : '' %>">Análises</a>
+        <% } %>
+        <% if (user.role === 'admin') { %>
+          <a href="/configuracoes" class="nav-link <%= currentPath.startsWith('/configuracoes') || currentPath.startsWith('/usuarios') ? 'nav-link-active' : '' %>">Configurações</a>
+        <% } %>
+      </nav>
+      <div class="nav-user">
+        <span class="nav-user-name" title="<%= user.username %>"><%= user.nome %></span>
+        <form method="POST" action="/logout" class="nav-logout-form">
+          <button type="submit" class="nav-link nav-logout">Sair</button>
+        </form>
+      </div>
+    <% } %>
   </div>
 </header>
+<% if (typeof authWarning !== 'undefined' && authWarning) { %>
+  <div class="app-shell" style="padding-top:0.75rem">
+    <div class="alert alert-warn" role="alert"><%= authWarning %></div>
+  </div>
+<% } %>

@@ -1,0 +1,18 @@
+<%- include('../partials/header') %>
+
+<section class="page-header mb-4">
+  <div>
+    <p class="page-eyebrow">Sistema</p>
+    <h1 class="page-title">Acesso negado</h1>
+    <p class="page-sub"><%= typeof message !== 'undefined' ? message : 'Você não tem permissão para esta página.' %></p>
+  </div>
+</section>
+
+<div class="empty-state">
+  <p>Solicite ao administrador a liberação da aba correspondente.</p>
+  <p style="margin-top:0.75rem">
+    <a class="btn btn-primary" href="/">Voltar</a>
+  </p>
+</div>
+
+<%- include('../partials/footer') %>

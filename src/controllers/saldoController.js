@@ -35,15 +35,6 @@ async function index(req, res, next) {
   }
 }
 
-async function fifo(req, res, next) {
-  try {
-    const criadas = await saldoService.alocarFifo();
-    res.redirect(`/saldo?ok=${encodeURIComponent(`${criadas.length} alocação(ões) FIFO`)}`);
-  } catch (err) {
-    res.redirect(`/saldo?erro=${encodeURIComponent(err.message)}`);
-  }
-}
-
 async function alocar(req, res, next) {
   try {
     await saldoService.alocarManual({
@@ -68,7 +59,6 @@ async function removerAlocacao(req, res, next) {
 
 module.exports = {
   index,
-  fifo,
   alocar,
   removerAlocacao,
 };

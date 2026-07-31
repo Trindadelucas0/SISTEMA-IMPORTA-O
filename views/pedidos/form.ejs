@@ -28,15 +28,68 @@
       </div>
       <div>
         <label class="label" for="status">Status</label>
-        <select class="field" id="status" name="status">
-          <% statusList.forEach(function(s) { %>
-            <option value="<%= s %>" <%= (pedido?.status || 'aberta') === s ? 'selected' : '' %>><%= s %></option>
-          <% }) %>
-        </select>
+        <% const isAdmin = typeof user !== 'undefined' && user && user.role === 'admin'; %>
+        <% if (isAdmin) { %>
+          <select class="field" id="status" name="status">
+            <% statusList.forEach(function(s) { %>
+              <option value="<%= s %>" <%= (pedido?.status || 'aberta') === s ? 'selected' : '' %>><%= statusPedidoLabel(s) %></option>
+            <% }) %>
+          </select>
+        <% } else { %>
+          <div class="mt-1">
+            <%- include('../partials/status-pedido', { pedidoId: null, status: pedido?.status || 'aberta' }) %>
+          </div>
+          <input type="hidden" name="status" value="<%= pedido?.status || 'aberta' %>">
+          <p class="field-hint">Somente administradores podem alterar o status.</p>
+        <% } %>
       </div>
       <div class="span-2">
-        <label class="label" for="fornecedor">Fornecedor</label>
-        <input class="field" id="fornecedor" name="fornecedor" value="<%= pedido?.fornecedor || '' %>" placeholder="Nome do fornecedor no exterior">
+        <label class="label" for="fornecedor_id">Fornecedor</label>
+        <select class="field" id="fornecedor_id" name="fornecedor_id" required>
+          <option value="">Selecione um fornecedor…</option>
+          <% (typeof fornecedores !== 'undefined' ? fornecedores : []).forEach(function(f) { %>
+            <option
+              value="<%= f.id %>"
+              <%= String(pedido?.fornecedor_id || '') === String(f.id) ? 'selected' : '' %>
+            >
+              <%= f.nome %><%= f.pais ? ' · ' + f.pais : '' %><%= f.ativo ? '' : ' (inativo)' %>
+            </option>
+          <% }) %>
+        </select>
+        <p class="field-hint">
+          Cadastre em
+          <a class="link-action" href="/fornecedores/novo">Fornecedores</a>
+          se ainda não existir.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h2 class="form-section-title">Prazos</h2>
+    <div class="form-grid form-grid-2">
+      <div>
+        <label class="label" for="data_inicio_fabricacao">Início da fabricação</label>
+        <input
+          class="field"
+          type="date"
+          id="data_inicio_fabricacao"
+          name="data_inicio_fabricacao"
+          value="<%= pedido?.data_inicio_fabricacao || '' %>"
+        >
+        <p class="field-hint">Base para a data prevista de chegada.</p>
+      </div>
+      <div>
+        <label class="label" for="data_prevista_chegada">Prevista de chegada</label>
+        <input
+          class="field"
+          type="date"
+          id="data_prevista_chegada"
+          value="<%= pedido?.data_prevista_chegada || '' %>"
+          readonly
+          tabindex="-1"
+        >
+        <p class="field-hint">Calculada automaticamente: início + 90 dias.</p>
       </div>
     </div>
   </div>
@@ -54,5 +107,29 @@
     <button type="submit" class="btn btn-primary"><%= pedido && pedido.id ? 'Salvar alterações' : 'Criar pedido' %></button>
   </div>
 </form>
+
+<script>
+(function () {
+  var inicio = document.getElementById('data_inicio_fabricacao');
+  var prevista = document.getElementById('data_prevista_chegada');
+  if (!inicio || !prevista) return;
+
+  function addDaysIso(dateStr, days) {
+    if (!dateStr) return '';
+    var parts = dateStr.split('-').map(Number);
+    if (parts.length < 3 || !parts[0] || !parts[1] || !parts[2]) return '';
+    var dt = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+    dt.setUTCDate(dt.getUTCDate() + days);
+    return dt.toISOString().slice(0, 10);
+  }
+
+  function syncPrevista() {
+    prevista.value = inicio.value ? addDaysIso(inicio.value, 90) : '';
+  }
+
+  inicio.addEventListener('change', syncPrevista);
+  inicio.addEventListener('input', syncPrevista);
+})();
+</script>
 
 <%- include('../partials/footer') %>

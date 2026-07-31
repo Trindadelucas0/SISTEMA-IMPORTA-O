@@ -1,0 +1,628 @@
+/* Relatório de Custo Unitário — tela + impressão/PDF */
+
+:root {
+  --ink: #111827;
+  --muted: #6B7280;
+  --border: #D8DCE3;
+  --border-soft: #ECEEF2;
+  --border-group: #94A3B8;
+  --surface: #FFFFFF;
+  --bg: #F1F3F5;
+  --primary: #1B4F9C;
+  --navy: #0F172A;
+  --ok: #067647;
+  --bad: #B42318;
+  --warn: #B54708;
+  --thead: #F7F8FA;
+  --highlight: #E8EEF8;
+  --grp-id: #1E293B;
+  --grp-usd: #0F4C81;
+  --grp-produto: #14532D;
+  --grp-imposto: #7C2D12;
+  --grp-outras: #4C1D95;
+  --grp-resultado: #163F7C;
+}
+
+* { box-sizing: border-box; }
+
+body.relatorio-page {
+  margin: 0;
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.relatorio-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--navy);
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.relatorio-toolbar-inner {
+  max-width: 96rem;
+  margin: 0 auto;
+  padding: 0.65rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.relatorio-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.rel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.85rem;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1.2;
+}
+
+.rel-btn-ghost {
+  background: transparent;
+  color: #E5E7EB;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.rel-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.rel-btn-primary {
+  background: #fff;
+  color: var(--navy);
+}
+
+.rel-btn-primary:hover {
+  background: #F3F4F6;
+}
+
+.relatorio-doc {
+  max-width: 96rem;
+  margin: 1rem auto 2rem;
+  padding: 1.5rem 1.25rem 2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.relatorio-masthead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding-bottom: 1.15rem;
+  border-bottom: 2px solid var(--navy);
+  margin-bottom: 1.15rem;
+}
+
+.relatorio-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.relatorio-mark {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--navy);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.relatorio-brand-name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--navy);
+}
+
+.relatorio-doc-type {
+  margin: 0.2rem 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--primary);
+}
+
+.relatorio-doc-meta {
+  text-align: right;
+}
+
+.relatorio-doc-id {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.relatorio-doc-date {
+  margin: 0.2rem 0 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.relatorio-identity {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1.25rem;
+  padding: 0.85rem 0 1.1rem;
+  border-bottom: 1px solid var(--border-soft);
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 720px) {
+  .relatorio-identity {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.rel-label {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.rel-value {
+  margin: 0.2rem 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rel-pill {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.rel-pill-ok {
+  background: #ECFDF3;
+  color: var(--ok);
+}
+
+.rel-pill-warn {
+  background: #FFFAEB;
+  color: var(--warn);
+}
+
+.relatorio-alert {
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.85rem;
+  background: #FFFAEB;
+  border: 1px solid #FEDF89;
+  border-left: 3px solid var(--warn);
+  color: #7A2E0E;
+  font-size: 12px;
+}
+
+.relatorio-section {
+  margin-bottom: 1.35rem;
+}
+
+.relatorio-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.55rem;
+}
+
+.relatorio-section-title {
+  margin: 0 0 0.55rem;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--navy);
+}
+
+.relatorio-section-head .relatorio-section-title {
+  margin-bottom: 0;
+}
+
+.relatorio-formula {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+.relatorio-params {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid var(--border);
+  background: var(--thead);
+}
+
+@media (min-width: 720px) {
+  .relatorio-params {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .relatorio-params {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.rel-param {
+  padding: 0.65rem 0.75rem;
+  border-right: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.rel-param-value {
+  margin: 0.25rem 0 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.rel-param-meta {
+  margin: 0.15rem 0 0;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.is-ok { color: var(--ok); }
+.is-bad { color: var(--bad); }
+
+.relatorio-empty {
+  margin: 0;
+  padding: 1.25rem;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+}
+
+.relatorio-sheet-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+}
+
+.relatorio-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.relatorio-table th,
+.relatorio-table td {
+  padding: 0.35rem 0.4rem;
+  border-bottom: 1px solid var(--border-soft);
+  border-right: 1px solid var(--border-soft);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.relatorio-table th:last-child,
+.relatorio-table td:last-child {
+  border-right: 0;
+}
+
+.relatorio-table thead th {
+  color: #fff;
+  font-weight: 600;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: left;
+}
+
+.relatorio-group-row th {
+  background: var(--navy);
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  padding: 0.4rem 0.35rem;
+  border-right: 2px solid rgba(255, 255, 255, 0.25);
+}
+
+.relatorio-group-row th:last-child {
+  border-right: 0;
+}
+
+.relatorio-group-row .grp-id { background: var(--grp-id); }
+.relatorio-group-row .grp-usd { background: var(--grp-usd); }
+.relatorio-group-row .grp-produto { background: var(--grp-produto); }
+.relatorio-group-row .grp-imposto { background: var(--grp-imposto); }
+.relatorio-group-row .grp-outras { background: var(--grp-outras); }
+.relatorio-group-row .grp-resultado { background: var(--grp-resultado); }
+
+.relatorio-field-row th {
+  background: #334155;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.relatorio-table .num {
+  text-align: right;
+}
+
+.relatorio-table-compact {
+  font-size: 12px;
+}
+
+.relatorio-table-compact thead th {
+  background: var(--navy);
+  position: static;
+}
+
+.relatorio-sheet {
+  min-width: 1180px;
+}
+
+.relatorio-sheet .col-sticky {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #fff;
+  font-weight: 600;
+  box-shadow: 2px 0 0 var(--border-soft);
+}
+
+.relatorio-sheet thead .col-sticky {
+  background: var(--grp-id);
+  z-index: 3;
+}
+
+.relatorio-sheet .relatorio-field-row .col-sticky {
+  background: #334155;
+}
+
+/* Separadores fortes entre grupos de colunas */
+.grp-start-usd,
+.grp-start-produto,
+.grp-start-imposto,
+.grp-start-outras,
+.grp-start-resultado {
+  border-left: 2px solid var(--border-group) !important;
+}
+
+.col-highlight {
+  background: var(--highlight) !important;
+  font-weight: 700;
+}
+
+.relatorio-sheet thead .col-highlight {
+  background: var(--grp-resultado) !important;
+  color: #fff;
+}
+
+.relatorio-total td {
+  background: var(--thead);
+  font-weight: 700;
+  border-top: 2px solid var(--navy);
+}
+
+.relatorio-total .col-sticky {
+  background: var(--thead);
+}
+
+.relatorio-totals-bar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 0.9rem 0;
+  border-top: 2px solid var(--navy);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 720px) {
+  .relatorio-totals-bar {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.relatorio-anexo {
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border);
+}
+
+.relatorio-footer {
+  padding-top: 0.5rem;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.relatorio-footer p {
+  margin: 0 0 0.25rem;
+}
+
+.relatorio-footer-note {
+  font-size: 10px;
+}
+
+body.is-pendente .relatorio-doc {
+  background-image:
+    repeating-linear-gradient(
+      -18deg,
+      transparent,
+      transparent 40px,
+      rgba(181, 71, 8, 0.03) 40px,
+      rgba(181, 71, 8, 0.03) 80px
+    );
+}
+
+/* —— Impressão / PDF —— */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 7mm 5mm;
+  }
+
+  body.relatorio-page {
+    background: #fff;
+    font-size: 8pt;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .relatorio-doc {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .relatorio-toolbar {
+    display: none !important;
+  }
+
+  .relatorio-masthead {
+    padding-bottom: 5pt;
+    margin-bottom: 5pt;
+  }
+
+  .relatorio-brand-name {
+    font-size: 11pt;
+  }
+
+  .relatorio-doc-type {
+    font-size: 9pt;
+  }
+
+  .relatorio-doc-id {
+    font-size: 12pt;
+  }
+
+  .relatorio-identity {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding: 4pt 0 6pt;
+    margin-bottom: 6pt;
+  }
+
+  .relatorio-params {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .rel-param {
+    padding: 3pt 5pt;
+    break-inside: avoid;
+  }
+
+  .rel-param-value {
+    font-size: 9pt;
+  }
+
+  .relatorio-sheet-wrap {
+    overflow: visible;
+    border: 1px solid #ccc;
+  }
+
+  .relatorio-sheet {
+    min-width: 0;
+    width: 100%;
+    font-size: 6pt;
+  }
+
+  .relatorio-table th,
+  .relatorio-table td {
+    padding: 1.5pt 2pt;
+  }
+
+  .relatorio-group-row th {
+    padding: 2pt;
+    font-size: 6.5pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .relatorio-field-row th {
+    position: static;
+    font-size: 5.5pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .relatorio-sheet thead {
+    display: table-header-group;
+  }
+
+  .relatorio-sheet tbody {
+    display: table-row-group;
+  }
+
+  .relatorio-sheet .col-sticky {
+    position: static;
+    box-shadow: none;
+  }
+
+  .col-highlight,
+  .relatorio-total td,
+  .rel-pill-ok,
+  .rel-pill-warn,
+  .relatorio-alert {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .relatorio-section {
+    break-inside: avoid;
+  }
+
+  .relatorio-section:has(.relatorio-sheet) {
+    break-inside: auto;
+  }
+
+  .relatorio-anexo {
+    break-before: page;
+  }
+
+  .relatorio-totals-bar {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    break-inside: avoid;
+  }
+
+  body.is-pendente .relatorio-doc {
+    background: #fff;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

@@ -1,5 +1,6 @@
 const express = require('express');
 const pedidoController = require('../controllers/pedidoController');
+const { requireAdmin } = require('../middlewares/auth');
 
 const router = express.Router();
 
@@ -8,6 +9,7 @@ router.get('/novo', pedidoController.formNovo);
 router.post('/', pedidoController.criar);
 router.get('/:id', pedidoController.detalhe);
 router.get('/:id/editar', pedidoController.formEditar);
+router.put('/:id/status', requireAdmin, pedidoController.atualizarStatus);
 router.put('/:id', pedidoController.atualizar);
 router.delete('/:id', pedidoController.remover);
 

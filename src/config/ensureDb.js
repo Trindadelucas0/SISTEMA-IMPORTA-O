@@ -8,6 +8,11 @@ const MIGRATIONS = [
   'migrate_saldo_alocacao.sql',
   'migrate_produtos.sql',
   'seed_produtos.sql',
+  'migrate_datas_fabricacao.sql',
+  'migrate_auth_usuarios.sql',
+  'migrate_fornecedores.sql',
+  'migrate_status_pedido.sql',
+  'migrate_fornecedores_cnpj.sql',
 ];
 
 function dbConfig() {
@@ -71,6 +76,9 @@ async function ensureDatabase() {
   } finally {
     await appDb.end();
   }
+
+  const Usuario = require('../models/Usuario');
+  await Usuario.ensureAdminSeed();
 }
 
 module.exports = { ensureDatabase };

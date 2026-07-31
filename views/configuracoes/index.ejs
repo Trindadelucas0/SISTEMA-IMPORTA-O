@@ -1,0 +1,24 @@
+<%- include('../partials/header') %>
+
+<section class="page-header mb-4">
+  <div>
+    <p class="page-eyebrow">Administração</p>
+    <h1 class="page-title">Configurações</h1>
+    <p class="page-sub">Gerencie usuários e renovação de senhas.</p>
+  </div>
+</section>
+
+<section class="dash-grid">
+  <a href="/usuarios" class="panel panel-pad" style="text-decoration:none;color:inherit;display:block">
+    <h2 class="section-title" style="margin-bottom:0.35rem">Usuários</h2>
+    <p class="page-sub" style="margin:0">Crie logins, defina abas liberadas e edite perfis.</p>
+    <p class="link-action" style="margin-top:0.75rem">Abrir usuários →</p>
+  </a>
+  <a href="/configuracoes/senha" class="panel panel-pad" style="text-decoration:none;color:inherit;display:block">
+    <h2 class="section-title" style="margin-bottom:0.35rem">Renovação de senha</h2>
+    <p class="page-sub" style="margin:0">Escolha um usuário e defina uma nova senha. Sessões anteriores serão encerradas.</p>
+    <p class="link-action" style="margin-top:0.75rem">Renovar senha →</p>
+  </a>
+</section>
+
+<%- include('../partials/footer') %>

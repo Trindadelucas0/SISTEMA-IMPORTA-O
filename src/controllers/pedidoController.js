@@ -2,10 +2,67 @@ const Pedido = require('../models/Pedido');
 const ItemPedido = require('../models/ItemPedido');
 const Desembaraco = require('../models/Desembaraco');
 const Produto = require('../models/Produto');
+const Fornecedor = require('../models/Fornecedor');
 const saldoService = require('../services/saldoService');
-const { parseNumber } = require('../utils/format');
+const {
+  parseNumber,
+  toDateInputValue,
+  addDaysIso,
+  STATUS_PEDIDO,
+} = require('../utils/format');
 
-const STATUS = ['aberta', 'em_transito', 'desembarcada', 'fechada'];
+const STATUS = STATUS_PEDIDO;
+const DIAS_PREVISTA_CHEGADA = 90;
+
+function statusValido(raw) {
+  const status = String(raw || '').trim();
+  return STATUS.includes(status) ? status : null;
+}
+
+function datasFabricacaoDoBody(body) {
+  const data_inicio_fabricacao = toDateInputValue(body.data_inicio_fabricacao) || null;
+  const data_prevista_chegada = data_inicio_fabricacao
+    ? addDaysIso(data_inicio_fabricacao, DIAS_PREVISTA_CHEGADA)
+    : null;
+  return { data_inicio_fabricacao, data_prevista_chegada };
+}
+
+function pedidoParaForm(pedido) {
+  if (!pedido) return null;
+  return {
+    ...pedido,
+    data_inicio_fabricacao: toDateInputValue(pedido.data_inicio_fabricacao),
+    data_prevista_chegada: toDateInputValue(pedido.data_prevista_chegada),
+  };
+}
+
+async function resolverFornecedor(body, { permitirInativo = false } = {}) {
+  const fornecedor_id = Number(body.fornecedor_id);
+  if (!Number.isFinite(fornecedor_id) || fornecedor_id <= 0) {
+    return { error: 'Selecione um fornecedor cadastrado.' };
+  }
+  const fornecedor = await Fornecedor.findById(fornecedor_id);
+  if (!fornecedor) {
+    return { error: 'Fornecedor não encontrado. Cadastre ou escolha outro.' };
+  }
+  if (!fornecedor.ativo && !permitirInativo) {
+    return { error: 'Este fornecedor está inativo. Escolha outro ou reative-o.' };
+  }
+  return {
+    fornecedor_id: fornecedor.id,
+    fornecedor: fornecedor.nome,
+  };
+}
+
+async function fornecedoresParaForm(pedido) {
+  const ativos = await Fornecedor.listarAtivos();
+  if (!pedido?.fornecedor_id) return ativos;
+  const jaIncluido = ativos.some((f) => Number(f.id) === Number(pedido.fornecedor_id));
+  if (jaIncluido) return ativos;
+  const atual = await Fornecedor.findById(pedido.fornecedor_id);
+  if (atual) return [atual, ...ativos];
+  return ativos;
+}
 
 async function listar(req, res, next) {
   try {
@@ -21,6 +78,7 @@ async function listar(req, res, next) {
         : s.coberto ? 100 : 0;
       pedidosComSaldo.push({
         ...p,
+        fornecedor: p.fornecedor_nome || p.fornecedor,
         invoice_usd: invoice,
         alocado_usd: alocado,
         falta_usd: falta,
@@ -29,7 +87,7 @@ async function listar(req, res, next) {
         status_fornecedor: s.status_fornecedor,
       });
     }
-    const pedidosAbertos = pedidosComSaldo.filter((p) => p.status !== 'fechada');
+    const pedidosAbertos = pedidosComSaldo.filter((p) => p.status !== 'embarcada');
 
     res.render('pedidos/index', {
       title: 'Pedidos',
@@ -43,9 +101,11 @@ async function listar(req, res, next) {
 
 async function formNovo(req, res, next) {
   try {
+    const fornecedores = await Fornecedor.listarAtivos();
     res.render('pedidos/form', {
       title: 'Novo pedido',
       pedido: null,
+      fornecedores,
       statusList: STATUS,
       error: null,
     });
@@ -56,28 +116,61 @@ async function formNovo(req, res, next) {
 
 async function criar(req, res, next) {
   try {
+    const fornecedores = await Fornecedor.listarAtivos();
     const codigo = String(req.body.codigo || '').trim().toUpperCase();
     if (!codigo) {
       return res.status(400).render('pedidos/form', {
         title: 'Novo pedido',
-        pedido: req.body,
+        pedido: pedidoParaForm(req.body),
+        fornecedores,
         statusList: STATUS,
         error: 'Informe o código do pedido (ex: A23).',
       });
     }
 
+    const statusRaw = req.body.status;
+    const statusParsed = statusValido(statusRaw);
+    if (statusRaw && !statusParsed) {
+      return res.status(400).render('pedidos/form', {
+        title: 'Novo pedido',
+        pedido: pedidoParaForm(req.body),
+        fornecedores,
+        statusList: STATUS,
+        error: 'Status inválido. Use Aberta, Em Trânsito ou Embarcada.',
+      });
+    }
+    const status =
+      req.user?.role === 'admin'
+        ? statusParsed || 'aberta'
+        : 'aberta';
+
+    const forn = await resolverFornecedor(req.body);
+    if (forn.error) {
+      return res.status(400).render('pedidos/form', {
+        title: 'Novo pedido',
+        pedido: pedidoParaForm(req.body),
+        fornecedores,
+        statusList: STATUS,
+        error: forn.error,
+      });
+    }
+
     const pedido = await Pedido.criar({
       codigo,
-      fornecedor: req.body.fornecedor,
-      status: req.body.status,
+      fornecedor: forn.fornecedor,
+      fornecedor_id: forn.fornecedor_id,
+      status,
       observacao: req.body.observacao,
+      ...datasFabricacaoDoBody(req.body),
     });
     res.redirect(`/pedidos/${pedido.id}`);
   } catch (err) {
     if (err.code === '23505') {
+      const fornecedores = await Fornecedor.listarAtivos();
       return res.status(400).render('pedidos/form', {
         title: 'Novo pedido',
-        pedido: req.body,
+        pedido: pedidoParaForm(req.body),
+        fornecedores,
         statusList: STATUS,
         error: 'Já existe um pedido com esse código.',
       });
@@ -123,7 +216,10 @@ async function detalhe(req, res, next) {
 
     res.render('pedidos/show', {
       title: `Pedido ${pedido.codigo}`,
-      pedido,
+      pedido: {
+        ...pedido,
+        fornecedor: pedido.fornecedor_nome || pedido.fornecedor,
+      },
       itens: itensComAmount,
       totalUsd,
       saldo,
@@ -132,6 +228,8 @@ async function detalhe(req, res, next) {
       custoDelta,
       produtos,
       statusList: STATUS,
+      statusOk: req.query.ok === 'status',
+      statusErro: req.query.erro === 'status',
     });
   } catch (err) {
     next(err);
@@ -148,9 +246,11 @@ async function formEditar(req, res, next) {
         pathTried: req.originalUrl,
       });
     }
+    const fornecedores = await fornecedoresParaForm(pedido);
     res.render('pedidos/form', {
       title: `Editar ${pedido.codigo}`,
-      pedido,
+      pedido: pedidoParaForm(pedido),
+      fornecedores,
       statusList: STATUS,
       error: null,
     });
@@ -161,23 +261,105 @@ async function formEditar(req, res, next) {
 
 async function atualizar(req, res, next) {
   try {
+    const pedidoAtual = await Pedido.findById(req.params.id);
+    const formPedido = pedidoParaForm({
+      ...req.body,
+      id: req.params.id,
+      fornecedor_id: req.body.fornecedor_id || pedidoAtual?.fornecedor_id,
+    });
+    const fornecedores = await fornecedoresParaForm(formPedido);
+
     const codigo = String(req.body.codigo || '').trim().toUpperCase();
     if (!codigo) {
       return res.status(400).render('pedidos/form', {
         title: 'Editar pedido',
-        pedido: { ...req.body, id: req.params.id },
+        pedido: formPedido,
+        fornecedores,
         statusList: STATUS,
         error: 'Informe o código do pedido.',
       });
     }
 
+    let status = statusValido(req.body.status);
+    if (req.user?.role !== 'admin') {
+      status = statusValido(pedidoAtual?.status) || 'aberta';
+    } else if (!status) {
+      return res.status(400).render('pedidos/form', {
+        title: 'Editar pedido',
+        pedido: formPedido,
+        fornecedores,
+        statusList: STATUS,
+        error: 'Status inválido. Use Aberta, Em Trânsito ou Embarcada.',
+      });
+    }
+
+    const mesmoVinculo =
+      pedidoAtual &&
+      Number(pedidoAtual.fornecedor_id) === Number(req.body.fornecedor_id);
+    const forn = await resolverFornecedor(req.body, { permitirInativo: !!mesmoVinculo });
+    if (forn.error) {
+      return res.status(400).render('pedidos/form', {
+        title: 'Editar pedido',
+        pedido: formPedido,
+        fornecedores,
+        statusList: STATUS,
+        error: forn.error,
+      });
+    }
+
     await Pedido.atualizar(req.params.id, {
       codigo,
-      fornecedor: req.body.fornecedor,
-      status: req.body.status,
+      fornecedor: forn.fornecedor,
+      fornecedor_id: forn.fornecedor_id,
+      status,
       observacao: req.body.observacao,
+      ...datasFabricacaoDoBody(req.body),
     });
     res.redirect(`/pedidos/${req.params.id}`);
+  } catch (err) {
+    next(err);
+  }
+}
+
+function safeReturnTo(raw, fallback) {
+  const value = String(raw || '').trim();
+  if (!value.startsWith('/') || value.startsWith('//') || value.includes('\\')) {
+    return fallback;
+  }
+  return value;
+}
+
+async function atualizarStatus(req, res, next) {
+  try {
+    const pedido = await Pedido.findById(req.params.id);
+    if (!pedido) {
+      return res.status(404).render('errors/404', {
+        title: 'Pedido não encontrado',
+        message: 'Não há pedido com esse ID. Abra a lista de pedidos e escolha um existente.',
+        pathTried: req.originalUrl,
+      });
+    }
+
+    const fallback = `/pedidos/${pedido.id}`;
+    const status = statusValido(req.body.status);
+    if (!status) {
+      return res.redirect(`${fallback}?erro=status`);
+    }
+
+    await Pedido.atualizarStatus(pedido.id, status);
+
+    let refererPath = '';
+    try {
+      if (req.get('Referer')) {
+        refererPath = new URL(req.get('Referer')).pathname + (new URL(req.get('Referer')).search || '');
+      }
+    } catch (_) {
+      refererPath = '';
+    }
+
+    const destino = safeReturnTo(req.body.returnTo, safeReturnTo(refererPath, fallback));
+    const sep = destino.includes('?') ? '&' : '?';
+    res.redirect(`${destino}${sep}ok=status`);
   } catch (err) {
     next(err);
   }
@@ -284,6 +466,7 @@ module.exports = {
   detalhe,
   formEditar,
   atualizar,
+  atualizarStatus,
   remover,
   adicionarItem,
   atualizarItem,

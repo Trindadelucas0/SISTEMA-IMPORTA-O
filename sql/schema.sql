@@ -1,14 +1,49 @@
 -- Schema: pedidos, pagamentos soltos, alocacoes, desembaraço
 
+CREATE TABLE IF NOT EXISTS fornecedores (
+  id SERIAL PRIMARY KEY,
+  nome VARCHAR(200) UNIQUE NOT NULL,
+  cnpj VARCHAR(14),
+  razao_social VARCHAR(200),
+  nome_fantasia VARCHAR(200),
+  inscricao_estadual VARCHAR(30),
+  pais VARCHAR(80),
+  email VARCHAR(120),
+  telefone VARCHAR(40),
+  contato VARCHAR(200),
+  cep VARCHAR(8),
+  logradouro VARCHAR(200),
+  numero VARCHAR(20),
+  complemento VARCHAR(100),
+  bairro VARCHAR(100),
+  cidade VARCHAR(100),
+  uf VARCHAR(2),
+  observacao TEXT,
+  ativo BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_fornecedores_ativo ON fornecedores(ativo);
+CREATE INDEX IF NOT EXISTS idx_fornecedores_nome ON fornecedores(nome);
+-- idx_fornecedores_cnpj_unique fica em migrate_fornecedores_cnpj.sql
+-- (em bases antigas a coluna cnpj só existe após a migration)
+
 CREATE TABLE IF NOT EXISTS pedidos (
   id SERIAL PRIMARY KEY,
   codigo VARCHAR(20) UNIQUE NOT NULL,
   fornecedor VARCHAR(100),
+  fornecedor_id INT NULL REFERENCES fornecedores(id),
   status VARCHAR(30) NOT NULL DEFAULT 'aberta',
   observacao TEXT,
+  data_inicio_fabricacao DATE NULL,
+  data_prevista_chegada DATE NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- idx_pedidos_fornecedor_id fica em migrate_fornecedores.sql
+-- (em bases antigas a coluna só existe após a migration)
 
 CREATE TABLE IF NOT EXISTS itens_pedido (
   id SERIAL PRIMARY KEY,

@@ -3,7 +3,7 @@
 <section class="page-header mb-4 flex flex-wrap items-end justify-between gap-3">
   <div>
     <p class="page-eyebrow">Operação</p>
-    <h1 class="page-title">Desembaraço</h1>
+    <h1 class="page-title">Compras</h1>
     <p class="page-sub">Selecione o pedido para digitar os campos amarelos e recalcular impostos.</p>
   </div>
 </section>
@@ -31,7 +31,7 @@
           <% pedidos.forEach(function(p) { %>
             <tr>
               <td class="font-semibold mono"><%= p.codigo %></td>
-              <td><span class="badge badge-info"><%= p.status %></span></td>
+              <td><%- include('../partials/status-pedido', { pedidoId: p.id, status: p.status }) %></td>
               <td class="num col-hide-sm"><%= p.qtd_itens %></td>
               <td class="num"><%= moneyUsd(p.total_usd) %></td>
               <td class="text-right">

@@ -2,6 +2,7 @@ const Pedido = require('../models/Pedido');
 const Pagamento = require('../models/Pagamento');
 const saldoService = require('../services/saldoService');
 const cotacaoService = require('../services/cotacaoService');
+const { statusPedidoLabel } = require('../utils/format');
 
 async function dashboard(req, res, next) {
   try {
@@ -17,7 +18,7 @@ async function dashboard(req, res, next) {
 
     const statusMap = {};
     pedidos.forEach((p) => {
-      const key = p.status || 'sem status';
+      const key = statusPedidoLabel(p.status || 'sem status');
       statusMap[key] = (statusMap[key] || 0) + 1;
     });
 
@@ -35,7 +36,7 @@ async function dashboard(req, res, next) {
       const falta = Number(s.falta_usd) || 0;
       const pct = invoice > 0 ? Math.min(100, (alocado / invoice) * 100) : s.coberto ? 100 : 0;
       const coberto = !!s.coberto;
-      const aberto = p.status !== 'fechada';
+      const aberto = p.status !== 'embarcada';
 
       invoiceTotalUsd += invoice;
       faltaTotalUsd += Math.max(0, falta);

@@ -6,15 +6,10 @@
   const chartFalta = saldosPedidos.map(function(p) { return Number(p.falta_usd) || 0; });
 %>
 
-<section class="page-header mb-4 flex flex-wrap items-end justify-between gap-3">
-  <div>
-    <p class="page-eyebrow">Caixa</p>
-    <h1 class="page-title">Saldo</h1>
-    <p class="page-sub">Pool único. Pedidos consomem por alocação (FIFO ou manual).</p>
-  </div>
-  <form method="POST" action="/saldo/fifo">
-    <button type="submit" class="btn btn-primary">Alocar FIFO</button>
-  </form>
+<section class="page-header mb-4">
+  <p class="page-eyebrow">Caixa</p>
+  <h1 class="page-title">Saldo</h1>
+  <p class="page-sub">Pool único. Pedidos consomem por alocação manual.</p>
 </section>
 
 <% if (message) { %>

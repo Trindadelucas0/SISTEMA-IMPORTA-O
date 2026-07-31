@@ -1,6 +1,4 @@
-const Pagamento = require('../models/Pagamento');
 const Alocacao = require('../models/Alocacao');
-const Pedido = require('../models/Pedido');
 const ItemPedido = require('../models/ItemPedido');
 const { query } = require('../config/db');
 
@@ -134,48 +132,6 @@ async function alocarManual({ pagamentoId, pedidoId, valorUsd }) {
   });
 }
 
-/**
- * FIFO: pagamentos por data → pedidos abertos por data, até cobrir invoices.
- */
-async function alocarFifo() {
-  const pagamentos = await Pagamento.listar();
-  const pedidos = await Pedido.listar();
-  // listar pedidos oldest first
-  const pedidosOrdenados = [...pedidos].sort((a, b) => {
-    const da = new Date(a.created_at).getTime();
-    const db = new Date(b.created_at).getTime();
-    if (da !== db) return da - db;
-    return a.id - b.id;
-  });
-
-  const criadas = [];
-
-  for (const pedido of pedidosOrdenados) {
-    let saldoPed = await saldoPedido(pedido.id);
-    if (saldoPed.coberto || saldoPed.invoice_usd <= 0) continue;
-
-    for (const pag of pagamentos) {
-      if (saldoPed.falta_usd <= 0) break;
-      const disp = await Alocacao.disponivelPagamento(pag.id);
-      const disponivel = toNum(disp?.disponivel_usd);
-      if (disponivel <= 0) continue;
-
-      const aplicar = Math.min(disponivel, saldoPed.falta_usd);
-      const dolar = toNum(pag.dolar_dia);
-      const aloc = await Alocacao.criar({
-        pagamento_id: pag.id,
-        pedido_id: pedido.id,
-        valor_usd: aplicar,
-        valor_brl: aplicar * dolar,
-      });
-      criadas.push(aloc);
-      saldoPed = await saldoPedido(pedido.id);
-    }
-  }
-
-  return criadas;
-}
-
 async function alocacoesComCambio(pedidoId) {
   return Alocacao.listar({ pedidoId });
 }
@@ -192,7 +148,6 @@ module.exports = {
   extrato,
   saldoPedido,
   alocarManual,
-  alocarFifo,
   alocacoesComCambio,
   custoProdutoBrlFromAlocacoes,
   invoiceUsdPedido,

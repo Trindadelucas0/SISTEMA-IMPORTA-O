@@ -1,0 +1,35 @@
+<%
+  const sid = pedidoId;
+  const st = status || 'aberta';
+  const badgeCls = statusPedidoBadgeClass(st);
+  const label = statusPedidoLabel(st);
+  const isAdmin = typeof user !== 'undefined' && user && user.role === 'admin';
+  const returnTo = typeof currentPath !== 'undefined' && currentPath
+    ? (typeof currentUrl !== 'undefined' && currentUrl ? currentUrl : currentPath)
+    : '/pedidos';
+%>
+<% if (isAdmin && sid) { %>
+  <details class="status-picker">
+    <summary class="badge <%= badgeCls %> status-picker-trigger" title="Alterar status">
+      <%= label %>
+    </summary>
+    <div class="status-picker-menu" role="menu">
+      <% STATUS_PEDIDO.forEach(function(s) { %>
+        <form method="POST" action="/pedidos/<%= sid %>/status?_method=PUT" role="none">
+          <input type="hidden" name="status" value="<%= s %>">
+          <input type="hidden" name="returnTo" value="<%= returnTo %>">
+          <button
+            type="submit"
+            class="status-picker-option badge <%= statusPedidoBadgeClass(s) %><%= s === st ? ' is-current' : '' %>"
+            role="menuitem"
+            <%= s === st ? 'disabled aria-current="true"' : '' %>
+          >
+            <%= statusPedidoLabel(s) %>
+          </button>
+        </form>
+      <% }) %>
+    </div>
+  </details>
+<% } else { %>
+  <span class="badge <%= badgeCls %>"><%= label %></span>
+<% } %>

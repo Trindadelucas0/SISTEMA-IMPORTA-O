@@ -91,6 +91,106 @@ function parseNumber(raw) {
   return Number.isFinite(n) ? n : 0;
 }
 
+/**
+ * Normaliza valor de data para YYYY-MM-DD (input type="date").
+ */
+function toDateInputValue(value) {
+  if (value === undefined || value === null || value === '') return '';
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+    return value.slice(0, 10);
+  }
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Soma dias a uma data YYYY-MM-DD sem deslocar o dia por fuso.
+ * Retorna YYYY-MM-DD ou '' se a base for inválida/vazia.
+ */
+function addDaysIso(dateStr, days) {
+  const base = toDateInputValue(dateStr);
+  if (!base) return '';
+  const [y, m, d] = base.split('-').map(Number);
+  if (!y || !m || !d) return '';
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + Number(days));
+  return dt.toISOString().slice(0, 10);
+}
+
+/**
+ * Formata data para exibição pt-BR (dd/mm/aaaa).
+ */
+function formatDateBr(value) {
+  const iso = toDateInputValue(value);
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+const STATUS_PEDIDO = ['aberta', 'em_transito', 'embarcada'];
+
+const STATUS_PEDIDO_LABELS = {
+  aberta: 'Aberta',
+  em_transito: 'Em Trânsito',
+  embarcada: 'Embarcada',
+};
+
+function statusPedidoLabel(status) {
+  if (!status) return '—';
+  return STATUS_PEDIDO_LABELS[status] || String(status);
+}
+
+const STATUS_PEDIDO_BADGE = {
+  aberta: 'badge-info',
+  em_transito: 'badge-warn',
+  embarcada: 'badge-ok',
+};
+
+function statusPedidoBadgeClass(status) {
+  return STATUS_PEDIDO_BADGE[status] || 'badge-info';
+}
+
+function onlyDigits(value) {
+  return String(value || '').replace(/\D/g, '');
+}
+
+function formatCnpj(value) {
+  const d = onlyDigits(value).slice(0, 14);
+  if (d.length <= 2) return d;
+  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
+  if (d.length <= 12) {
+    return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
+  }
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+}
+
+function formatCep(value) {
+  const d = onlyDigits(value).slice(0, 8);
+  if (d.length <= 5) return d;
+  return `${d.slice(0, 5)}-${d.slice(5)}`;
+}
+
+function isValidCnpj(value) {
+  const cnpj = onlyDigits(value);
+  if (cnpj.length !== 14) return false;
+  if (/^(\d)\1+$/.test(cnpj)) return false;
+
+  const calc = (base, factors) => {
+    let sum = 0;
+    for (let i = 0; i < factors.length; i += 1) {
+      sum += Number(base[i]) * factors[i];
+    }
+    const rest = sum % 11;
+    return rest < 2 ? 0 : 11 - rest;
+  };
+
+  const d1 = calc(cnpj, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  const d2 = calc(cnpj, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  return d1 === Number(cnpj[12]) && d2 === Number(cnpj[13]);
+}
+
 module.exports = {
   moneyBrl,
   moneyUsd,
@@ -98,4 +198,15 @@ module.exports = {
   percentBr,
   formatInputBr,
   parseNumber,
+  toDateInputValue,
+  addDaysIso,
+  formatDateBr,
+  STATUS_PEDIDO,
+  STATUS_PEDIDO_LABELS,
+  statusPedidoLabel,
+  statusPedidoBadgeClass,
+  onlyDigits,
+  formatCnpj,
+  formatCep,
+  isValidCnpj,
 };

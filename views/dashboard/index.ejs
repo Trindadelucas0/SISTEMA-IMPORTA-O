@@ -255,7 +255,7 @@
           <% pedidos.forEach(function(p) { %>
             <tr>
               <td class="font-semibold"><%= p.codigo %></td>
-              <td><span class="badge badge-info"><%= p.status %></span></td>
+              <td><%- include('../partials/status-pedido', { pedidoId: p.id, status: p.status }) %></td>
               <td class="num col-hide-sm"><%= p.qtd_itens %></td>
               <td class="num"><%= moneyUsd(p.total_usd) %></td>
               <td class="text-right">

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= typeof title !== 'undefined' ? title + ' · Paulo' : 'Paulo' %></title>
+  <title><%= typeof title !== 'undefined' ? title + ' · Importação' : 'Importação' %></title>
   <link rel="stylesheet" href="/css/output.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -161,6 +161,41 @@
     .nav-link-active:hover {
       color: #fff;
       background: transparent;
+    }
+
+    .nav-user {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem 0.75rem;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .nav-user-name {
+      font-size: 0.75rem;
+      color: #94A3B8;
+      max-width: 9rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .nav-logout-form { margin: 0; }
+    .nav-logout {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-family: inherit;
+      color: #94A3B8;
+    }
+    .nav-logout:hover { color: #E2E8F0; }
+    @media (max-width: 639px) {
+      .nav-user {
+        width: 100%;
+        justify-content: space-between;
+        padding: 0.35rem 0 0.55rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.2);
+        margin-left: 0;
+      }
+      .nav-user-name { max-width: 60%; }
     }
 
     .page-header { margin-bottom: 1rem; }
@@ -333,6 +368,60 @@
     .badge-warn { background: #FFFAEB; border-color: #FEDF89; color: #B54708; }
     .badge-danger { background: #FEF3F2; border-color: #FECDCA; color: #B42318; }
     .badge-info { background: #EFF8FF; border-color: #B2DDFF; color: #175CD3; }
+
+    .status-picker {
+      position: relative;
+      display: inline-flex;
+      vertical-align: middle;
+    }
+    .status-picker > summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+    }
+    .status-picker > summary::-webkit-details-marker { display: none; }
+    .status-picker-trigger:hover,
+    .status-picker[open] > .status-picker-trigger {
+      filter: brightness(0.97);
+      outline: 1px solid currentColor;
+      outline-offset: 1px;
+    }
+    .status-picker-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 8.5rem;
+      padding: 6px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-shadow: 0 4px 14px rgba(16, 24, 40, 0.12);
+    }
+    .status-picker-menu.is-fixed {
+      position: fixed;
+      margin: 0;
+    }
+    .status-picker-menu form { margin: 0; }
+    .status-picker-option {
+      width: 100%;
+      justify-content: flex-start;
+      cursor: pointer;
+      font: inherit;
+      text-align: left;
+    }
+    .status-picker-option.is-current,
+    .status-picker-option:disabled {
+      opacity: 0.7;
+      cursor: default;
+      outline: 1px solid currentColor;
+    }
+    .status-picker-option:not(:disabled):hover {
+      filter: brightness(0.96);
+    }
 
     .progress {
       height: 6px;
@@ -557,6 +646,77 @@
     }
     .sheet .sheet-total { background: #F5F8FC; font-weight: 600; }
     .sheet .sheet-total td { border-top: 2px solid var(--border); }
+
+    /* Planilha Compras: grupos coloridos (igual relatório/Excel) */
+    .desembaraco-sheet {
+      --grp-id: #1E293B;
+      --grp-usd: #0F4C81;
+      --grp-produto: #14532D;
+      --grp-imposto: #7C2D12;
+      --grp-outras: #4C1D95;
+      --grp-resultado: #163F7C;
+      --grp-field: #334155;
+      --grp-border: #94A3B8;
+      --highlight: #E8EEF8;
+    }
+    .desembaraco-sheet table { min-width: 1600px; }
+    .desembaraco-sheet .sheet-group-row th {
+      color: #fff;
+      text-align: center;
+      font-size: 0.625rem;
+      letter-spacing: 0.05em;
+      padding: 0.4rem 0.35rem;
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      border-right: 2px solid rgba(255, 255, 255, 0.25);
+    }
+    .desembaraco-sheet .sheet-group-row th:last-child { border-right: 1px solid var(--border); }
+    .desembaraco-sheet .sheet-group-row .grp-id { background: var(--grp-id); }
+    .desembaraco-sheet .sheet-group-row .grp-usd { background: var(--grp-usd); }
+    .desembaraco-sheet .sheet-group-row .grp-produto { background: var(--grp-produto); }
+    .desembaraco-sheet .sheet-group-row .grp-imposto { background: var(--grp-imposto); }
+    .desembaraco-sheet .sheet-group-row .grp-outras { background: var(--grp-outras); }
+    .desembaraco-sheet .sheet-group-row .grp-resultado { background: var(--grp-resultado); }
+    .desembaraco-sheet .sheet-group-row th.col-sticky {
+      background: var(--grp-id);
+      color: #fff;
+      z-index: 5;
+    }
+    .desembaraco-sheet .sheet-field-row th {
+      background: var(--grp-field);
+      color: #fff;
+      top: 1.7rem;
+      z-index: 3;
+    }
+    .desembaraco-sheet .sheet-field-row th.col-sticky {
+      background: var(--grp-field);
+      color: #fff;
+      z-index: 5;
+    }
+    .desembaraco-sheet .sheet-field-row th.col-edit {
+      background: #FEF0C7;
+      color: #93370D;
+    }
+    .desembaraco-sheet .sheet-field-row th.col-highlight {
+      background: var(--grp-resultado) !important;
+      color: #fff;
+    }
+    .desembaraco-sheet .grp-start-usd,
+    .desembaraco-sheet .grp-start-produto,
+    .desembaraco-sheet .grp-start-imposto,
+    .desembaraco-sheet .grp-start-outras,
+    .desembaraco-sheet .grp-start-resultado {
+      border-left: 2px solid var(--grp-border) !important;
+    }
+    .desembaraco-sheet td.col-highlight,
+    .desembaraco-sheet .col-highlight {
+      background: var(--highlight);
+      font-weight: 700;
+    }
+    .desembaraco-sheet .sheet-total td.col-highlight {
+      background: var(--highlight);
+    }
 
     /* Sticky primeira coluna (REF) */
     .sheet th.col-sticky,

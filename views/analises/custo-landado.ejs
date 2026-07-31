@@ -1,0 +1,124 @@
+<%- include('../partials/header') %>
+
+<section class="page-header mb-4 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <p class="page-eyebrow">Análises</p>
+    <h1 class="page-title">Variação de custo landado</h1>
+    <p class="page-sub">Compara custo unitário BRL da última compra com a anterior (quando o pedido está coberto no desembaraço).</p>
+  </div>
+  <a href="/analises" class="btn btn-ghost btn-sm">Voltar ao hub</a>
+</section>
+
+<section class="kpi-grid mb-4">
+  <div class="stat">
+    <p class="stat-label">Itens</p>
+    <p class="stat-value"><%= kpis.totalItens %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Com custo nas 2 compras</p>
+    <p class="stat-value"><%= kpis.comCusto %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Alta de custo</p>
+    <p class="stat-value text-bad"><%= kpis.aumentosCusto %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Queda de custo</p>
+    <p class="stat-value text-ok"><%= kpis.quedasCusto %></p>
+  </div>
+</section>
+
+<section class="panel mb-4">
+  <div class="panel-head"><h2>Filtros</h2></div>
+  <form method="GET" action="/analises/custo-landado" class="panel-body">
+    <div class="form-grid form-grid-2">
+      <div>
+        <label class="label" for="q">Busca</label>
+        <input class="field" id="q" name="q" value="<%= filtros.q || '' %>" placeholder="Referência ou descrição">
+      </div>
+      <div>
+        <label class="label" for="fornecedor_id">Fornecedor (última compra)</label>
+        <select class="field" id="fornecedor_id" name="fornecedor_id">
+          <option value="">Todos</option>
+          <% fornecedores.forEach(function(f) { %>
+            <option value="<%= f.id %>" <%= String(filtros.fornecedor_id) === String(f.id) ? 'selected' : '' %>><%= f.nome %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div style="grid-column:1/-1">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" name="somenteCusto" value="1" <%= filtros.somenteCusto ? 'checked' : '' %>>
+          Só itens com custo landado nas duas compras
+        </label>
+      </div>
+    </div>
+    <div class="form-actions form-actions-start" style="margin-top:0.75rem">
+      <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+      <a href="/analises/custo-landado" class="btn btn-ghost btn-sm">Limpar</a>
+    </div>
+  </form>
+</section>
+
+<% if (!itens.length) { %>
+  <p class="empty-state">Nenhum item encontrado.</p>
+<% } else { %>
+  <div class="panel">
+    <p class="table-scroll-hint px-3 pt-2">Deslize a tabela para o lado para ver mais colunas.</p>
+    <div class="table-panel" style="border:0;border-radius:0">
+      <table>
+        <thead>
+          <tr>
+            <th>Referência</th>
+            <th>Último pedido</th>
+            <th>Fornecedor</th>
+            <th>Custo unit. atual</th>
+            <th class="col-hide-sm">Custo unit. anterior</th>
+            <th>Δ custo</th>
+            <th>Δ %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% itens.forEach(function(it) { %>
+            <tr>
+              <td class="mono font-medium">
+                <a class="link-action" href="/analises/comparativo/item/<%= encodeURIComponent(it.referencia) %>"><%= it.referencia %></a>
+              </td>
+              <td class="mono">
+                <% if (it.ultima) { %>
+                  <a class="link-action" href="/pedidos/<%= it.ultima.pedido_id %>"><%= it.ultima.pedido_codigo %></a>
+                <% } else { %>—<% } %>
+              </td>
+              <td><%= it.ultima?.fornecedor || '—' %></td>
+              <td class="num"><%= it.ultima?.custo_unit_brl != null ? moneyBrl(it.ultima.custo_unit_brl) : '—' %></td>
+              <td class="num col-hide-sm"><%= it.anterior?.custo_unit_brl != null ? moneyBrl(it.anterior.custo_unit_brl) : '—' %></td>
+              <td class="num">
+                <% if (it.deltaCustoUnitBrl == null) { %>
+                  —
+                <% } else if (it.aumentouCusto) { %>
+                  <span class="text-bad">+ <%= moneyBrl(it.deltaCustoUnitBrl) %></span>
+                <% } else if (it.diminuiuCusto) { %>
+                  <span class="text-ok">− <%= moneyBrl(Math.abs(it.deltaCustoUnitBrl)) %></span>
+                <% } else { %>
+                  0
+                <% } %>
+              </td>
+              <td class="num">
+                <% if (it.deltaCustoUnitPct == null) { %>
+                  —
+                <% } else if (it.aumentouCusto) { %>
+                  <span class="text-bad">+<%= numberBr(it.deltaCustoUnitPct, 1) %>%</span>
+                <% } else if (it.diminuiuCusto) { %>
+                  <span class="text-ok"><%= numberBr(it.deltaCustoUnitPct, 1) %>%</span>
+                <% } else { %>
+                  0%
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

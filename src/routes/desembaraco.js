@@ -4,6 +4,8 @@ const desembaracoController = require('../controllers/desembaracoController');
 const router = express.Router();
 
 router.get('/', desembaracoController.listarPedidos);
+router.get('/:pedidoId/relatorio', desembaracoController.relatorio);
+router.get('/:pedidoId/excel', desembaracoController.excel);
 router.get('/:pedidoId', desembaracoController.show);
 router.post('/:pedidoId', desembaracoController.salvar);
 

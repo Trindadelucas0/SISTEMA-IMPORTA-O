@@ -15,21 +15,35 @@
     <p class="page-eyebrow">Pedido</p>
     <div class="flex flex-wrap items-center gap-2">
       <h1 class="page-title mono"><%= pedido.codigo %></h1>
-      <span class="badge <%= badgeClass %>"><%= saldo.status_fornecedor || pedido.status %></span>
-      <span class="badge"><%= pedido.status %></span>
+      <%- include('../partials/status-pedido', { pedidoId: pedido.id, status: pedido.status }) %>
+      <span class="badge <%= badgeClass %>" title="Situação do pagamento ao fornecedor">
+        <%= saldo.coberto ? 'Quitado fornecedor' : 'Aguardando saldo' %>
+      </span>
     </div>
     <p class="page-sub"><%= pedido.fornecedor || 'Sem fornecedor' %></p>
+    <p class="page-sub mt-1">
+      Fabricação: <%= formatDateBr(pedido.data_inicio_fabricacao) %>
+      · Prevista chegada: <%= formatDateBr(pedido.data_prevista_chegada) %>
+    </p>
   </div>
   <div class="toolbar">
     <a href="/pedidos/<%= pedido.id %>/editar" class="btn btn-ghost btn-sm">Editar</a>
     <a href="/saldo" class="btn btn-ghost btn-sm">Saldo</a>
     <a href="/pagamentos/novo" class="btn btn-ghost btn-sm">Pagamento</a>
-    <a href="/desembaraco/<%= pedido.id %>" class="btn btn-primary btn-sm">Desembaraço</a>
+    <a href="/desembaraco/<%= pedido.id %>/relatorio" class="btn btn-ghost btn-sm" target="_blank" rel="noopener">Relatório custo</a>
+    <a href="/desembaraco/<%= pedido.id %>" class="btn btn-primary btn-sm">Compras</a>
     <form method="POST" action="/pedidos/<%= pedido.id %>?_method=DELETE" onsubmit="return confirm('Excluir pedido e itens?')">
       <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
     </form>
   </div>
 </section>
+
+<% if (typeof statusOk !== 'undefined' && statusOk) { %>
+  <p class="alert alert-success" role="status">Status atualizado.</p>
+<% } %>
+<% if (typeof statusErro !== 'undefined' && statusErro) { %>
+  <p class="alert alert-error" role="alert">Status inválido. Escolha Aberta, Em Trânsito ou Embarcada.</p>
+<% } %>
 
 <section class="coverage-block mb-4">
   <div class="mb-2 flex flex-wrap items-end justify-between gap-2">
@@ -59,6 +73,11 @@
   <div class="stat">
     <p class="stat-label">Falta USD</p>
     <p class="stat-value <%= falta > 0 ? 'text-bad' : 'text-ok' %>"><%= moneyUsd(falta) %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Prevista de chegada</p>
+    <p class="stat-value" style="font-size:1.15rem"><%= formatDateBr(pedido.data_prevista_chegada) %></p>
+    <p class="stat-meta">Início fab. <%= formatDateBr(pedido.data_inicio_fabricacao) %></p>
   </div>
   <% if (desembaraco && desembaraco.custo_total_atual != null) { %>
     <div class="stat">
@@ -140,14 +159,17 @@
           <tbody>
             <% itens.forEach(function(item) { %>
               <tr class="align-top">
-                <td class="font-medium mono"><%= item.referencia %></td>
+                <td class="font-medium mono">
+                  <a class="link-action" href="/analises/comparativo/item/<%= encodeURIComponent(item.referencia) %>" title="Ver análise vs última compra"><%= item.referencia %></a>
+                </td>
                 <td class="max-w-xs whitespace-normal text-xs col-hide-sm" style="color:var(--muted)"><%= item.descricao || '—' %></td>
                 <td class="num"><%= numberBr(item.quantidade, 0) %></td>
                 <td class="num"><%= numberBr(item.preco_usd, 2) %></td>
                 <td class="num font-semibold"><%= moneyUsd(item.amount_usd) %></td>
                 <td class="mono col-hide-sm"><%= item.ncm || '—' %></td>
-                <td class="text-right">
-                  <form method="POST" action="/pedidos/<%= pedido.id %>/itens/<%= item.id %>?_method=DELETE" onsubmit="return confirm('Remover item?')">
+                <td class="text-right space-x-2">
+                  <a class="link-action" href="/analises/comparativo/item/<%= encodeURIComponent(item.referencia) %>">vs última</a>
+                  <form class="inline" method="POST" action="/pedidos/<%= pedido.id %>/itens/<%= item.id %>?_method=DELETE" onsubmit="return confirm('Remover item?')">
                     <button type="submit" class="link-danger">Remover</button>
                   </form>
                 </td>

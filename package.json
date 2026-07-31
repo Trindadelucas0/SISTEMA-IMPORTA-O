@@ -11,13 +11,17 @@
     "dev": "nodemon server.js",
     "db:init": "node sql/init.js",
     "css": "npx @tailwindcss/cli -i ./public/css/input.css -o ./public/css/output.css",
-    "css:watch": "npx @tailwindcss/cli -i ./public/css/input.css -o ./public/css/output.css --watch"
+    "css:watch": "npx @tailwindcss/cli -i ./public/css/input.css -o ./public/css/output.css --watch",
+    "test:smoke": "node scripts/smoke-validate.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
+    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "express-session": "^1.18.1",
+    "jsonwebtoken": "^9.0.3",
     "method-override": "^3.0.0",
     "pg": "^8.13.3"
   },

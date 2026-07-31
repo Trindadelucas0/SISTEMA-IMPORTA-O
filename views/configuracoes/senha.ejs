@@ -1,0 +1,59 @@
+<%- include('../partials/header') %>
+
+<section class="page-header mb-4 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <p class="page-eyebrow">Configurações</p>
+    <h1 class="page-title">Renovação de senha</h1>
+    <p class="page-sub">Escolha o usuário para definir uma nova senha.</p>
+  </div>
+  <div class="toolbar">
+    <a href="/configuracoes" class="btn btn-ghost">Voltar</a>
+  </div>
+</section>
+
+<section class="table-panel">
+  <p class="table-scroll-hint">Deslize horizontalmente para ver todas as colunas.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Usuário</th>
+        <th>Perfil</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (!usuarios.length) { %>
+        <tr>
+          <td colspan="5" class="empty-state" style="border:0">Nenhum usuário cadastrado.</td>
+        </tr>
+      <% } %>
+      <% usuarios.forEach(function(u) { %>
+        <tr>
+          <td><%= u.nome %></td>
+          <td class="mono"><%= u.username %></td>
+          <td>
+            <% if (u.role === 'admin') { %>
+              <span class="badge badge-info">Admin</span>
+            <% } else { %>
+              <span class="badge">Usuário</span>
+            <% } %>
+          </td>
+          <td>
+            <% if (u.ativo) { %>
+              <span class="badge badge-ok">Ativo</span>
+            <% } else { %>
+              <span class="badge badge-danger">Inativo</span>
+            <% } %>
+          </td>
+          <td style="text-align:right; white-space:nowrap">
+            <a class="link-action" href="/usuarios/<%= u.id %>/senha">Renovar senha</a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+
+<%- include('../partials/footer') %>

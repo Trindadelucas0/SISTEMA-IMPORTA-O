@@ -1,0 +1,41 @@
+<%- include('../partials/header') %>
+
+<section class="page-header mb-4">
+  <div>
+    <p class="page-eyebrow">Administração</p>
+    <h1 class="page-title">Renovar senha</h1>
+    <p class="page-sub">Usuário: <strong class="mono"><%= usuario.username %></strong> (<%= usuario.nome %>)</p>
+  </div>
+</section>
+
+<% if (error) { %>
+  <div class="alert alert-error" role="alert"><%= error %></div>
+<% } %>
+
+<div class="alert alert-warn" role="status">
+  Ao renovar a senha, todas as sessões ativas deste usuário serão encerradas.
+</div>
+
+<form method="POST" action="/usuarios/<%= usuario.id %>/senha" class="form-panel form-shell">
+  <div class="form-section">
+    <h2 class="form-section-title">Nova senha</h2>
+    <div class="form-grid">
+      <div>
+        <label class="label" for="password">Senha</label>
+        <input class="field" id="password" name="password" type="password" required
+               minlength="6" autocomplete="new-password">
+      </div>
+      <div>
+        <label class="label" for="password_confirm">Confirmar senha</label>
+        <input class="field" id="password_confirm" name="password_confirm" type="password" required
+               minlength="6" autocomplete="new-password">
+      </div>
+    </div>
+  </div>
+  <div class="form-actions">
+    <a href="/usuarios" class="btn btn-ghost">Cancelar</a>
+    <button type="submit" class="btn btn-primary">Renovar senha</button>
+  </div>
+</form>
+
+<%- include('../partials/footer') %>

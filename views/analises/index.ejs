@@ -1,0 +1,55 @@
+<%- include('../partials/header') %>
+
+<section class="page-header mb-4 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <p class="page-eyebrow">Relatórios</p>
+    <h1 class="page-title">Análises</h1>
+    <p class="page-sub">Comparativos de compra por item, fornecedor e custo landado.</p>
+  </div>
+</section>
+
+<section class="kpi-grid mb-4">
+  <div class="stat">
+    <p class="stat-label">Referências</p>
+    <p class="stat-value"><%= totalReferencias %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Alta de preço</p>
+    <p class="stat-value text-bad"><%= kpis.aumentos %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Queda de preço</p>
+    <p class="stat-value text-ok"><%= kpis.quedas %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Trocas de fornecedor</p>
+    <p class="stat-value"><%= kpis.trocas %></p>
+  </div>
+</section>
+
+<section class="panel mb-4">
+  <div class="panel-head"><h2>Análises disponíveis</h2></div>
+  <div class="panel-body" style="display:grid;gap:1rem">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <p class="font-medium">Comparativo de última compra por item</p>
+        <p class="page-sub" style="margin:0.25rem 0 0">
+          Última vs compra anterior: preço USD, quantidade, fornecedor e alertas de variação.
+        </p>
+      </div>
+      <a href="/analises/comparativo" class="btn btn-primary btn-sm">Abrir</a>
+    </div>
+    <hr style="border:0;border-top:1px solid var(--border, #e5e7eb);margin:0">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <p class="font-medium">Variação de custo landado</p>
+        <p class="page-sub" style="margin:0.25rem 0 0">
+          Compara custo unitário BRL (desembaraço) entre a última e a compra anterior, quando disponível.
+        </p>
+      </div>
+      <a href="/analises/custo-landado" class="btn btn-ghost btn-sm">Abrir</a>
+    </div>
+  </div>
+</section>
+
+<%- include('../partials/footer') %>

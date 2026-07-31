@@ -1,0 +1,78 @@
+<%- include('../partials/header') %>
+
+<section class="page-header mb-4 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <p class="page-eyebrow">Administração</p>
+    <h1 class="page-title">Usuários</h1>
+    <p class="page-sub">Crie logins, defina abas liberadas e renove senhas.</p>
+  </div>
+  <div class="toolbar">
+    <a href="/usuarios/novo" class="btn btn-primary">Novo usuário</a>
+  </div>
+</section>
+
+<% if (message) { %>
+  <div class="alert alert-success" role="status"><%= message %></div>
+<% } %>
+<% if (error) { %>
+  <div class="alert alert-error" role="alert"><%= error %></div>
+<% } %>
+
+<section class="table-panel">
+  <p class="table-scroll-hint">Deslize horizontalmente para ver todas as colunas.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Usuário</th>
+        <th>Perfil</th>
+        <th>Abas</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (!usuarios.length) { %>
+        <tr>
+          <td colspan="6" class="empty-state" style="border:0">Nenhum usuário cadastrado.</td>
+        </tr>
+      <% } %>
+      <% usuarios.forEach(function(u) { %>
+        <tr>
+          <td><%= u.nome %></td>
+          <td class="mono"><%= u.username %></td>
+          <td>
+            <% if (u.role === 'admin') { %>
+              <span class="badge badge-info">Admin</span>
+            <% } else { %>
+              <span class="badge">Usuário</span>
+            <% } %>
+          </td>
+          <td>
+            <% if (u.role === 'admin') { %>
+              <span class="text-muted">Todas</span>
+            <% } else if (!u.permissoes || !u.permissoes.length) { %>
+              <span class="badge badge-warn">Nenhuma</span>
+            <% } else { %>
+              <%= u.permissoes.join(', ') %>
+            <% } %>
+          </td>
+          <td>
+            <% if (u.ativo) { %>
+              <span class="badge badge-ok">Ativo</span>
+            <% } else { %>
+              <span class="badge badge-danger">Inativo</span>
+            <% } %>
+          </td>
+          <td style="text-align:right; white-space:nowrap">
+            <a class="link-action" href="/usuarios/<%= u.id %>/editar">Editar</a>
+            ·
+            <a class="link-action" href="/usuarios/<%= u.id %>/senha">Senha</a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+
+<%- include('../partials/footer') %>

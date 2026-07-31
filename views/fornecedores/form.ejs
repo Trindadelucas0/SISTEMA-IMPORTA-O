@@ -1,0 +1,144 @@
+<%- include('../partials/header') %>
+
+<section class="page-header flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <p class="page-eyebrow">Cadastro</p>
+    <h1 class="page-title"><%= fornecedor && fornecedor.id ? 'Editar fornecedor' : 'Novo fornecedor' %></h1>
+    <p class="page-sub">Cadastre fornecedor brasileiro (CNPJ) ou exterior. O nome aparece no pedido e nas análises.</p>
+  </div>
+  <a href="/fornecedores" class="btn btn-ghost btn-sm">Voltar à lista</a>
+</section>
+
+<% if (error) { %>
+  <p class="alert alert-error" role="alert"><%= error %></p>
+<% } %>
+
+<form
+  method="POST"
+  action="<%= fornecedor && fornecedor.id ? '/fornecedores/' + fornecedor.id + '?_method=PUT' : '/fornecedores' %>"
+  class="panel form-panel form-shell"
+  id="form-fornecedor"
+>
+  <div class="form-section">
+    <h2 class="form-section-title">Documento (Brasil)</h2>
+    <div class="form-grid form-grid-2">
+      <div>
+        <label class="label" for="cnpj">CNPJ</label>
+        <div class="flex gap-2 items-end">
+          <input
+            class="field mono"
+            id="cnpj"
+            name="cnpj"
+            inputmode="numeric"
+            autocomplete="off"
+            value="<%= fornecedor?.cnpj ? formatCnpj(fornecedor.cnpj) : '' %>"
+            placeholder="00.000.000/0000-00"
+            maxlength="18"
+          >
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-buscar-cnpj" style="white-space:nowrap">Buscar</button>
+        </div>
+        <p class="field-hint" id="cnpj-hint">Opcional. Com 14 dígitos válidos, busca razão social e endereço na Receita.</p>
+        <p class="field-hint" id="cnpj-status" role="status" aria-live="polite" style="display:none"></p>
+      </div>
+      <div>
+        <label class="label" for="inscricao_estadual">Inscrição estadual</label>
+        <input class="field" id="inscricao_estadual" name="inscricao_estadual" value="<%= fornecedor?.inscricao_estadual || '' %>" placeholder="Opcional">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h2 class="form-section-title">Identificação</h2>
+    <div class="form-grid form-grid-2">
+      <div class="span-2">
+        <label class="label" for="nome">Nome (exibição no sistema)</label>
+        <input class="field" id="nome" name="nome" required value="<%= fornecedor?.nome || '' %>" placeholder="Como aparece nos pedidos" autocomplete="organization">
+      </div>
+      <div>
+        <label class="label" for="razao_social">Razão social</label>
+        <input class="field" id="razao_social" name="razao_social" value="<%= fornecedor?.razao_social || '' %>" placeholder="Razão social completa">
+      </div>
+      <div>
+        <label class="label" for="nome_fantasia">Nome fantasia</label>
+        <input class="field" id="nome_fantasia" name="nome_fantasia" value="<%= fornecedor?.nome_fantasia || '' %>" placeholder="Nome fantasia">
+      </div>
+      <div>
+        <label class="label" for="pais">País</label>
+        <input class="field" id="pais" name="pais" value="<%= fornecedor?.pais || '' %>" placeholder="Brasil / China / …">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h2 class="form-section-title">Contato</h2>
+    <div class="form-grid form-grid-2">
+      <div>
+        <label class="label" for="email">E-mail</label>
+        <input class="field" id="email" name="email" type="email" value="<%= fornecedor?.email || '' %>" placeholder="contato@empresa.com" autocomplete="email">
+      </div>
+      <div>
+        <label class="label" for="telefone">Telefone</label>
+        <input class="field" id="telefone" name="telefone" value="<%= fornecedor?.telefone || '' %>" placeholder="(11) 99999-9999" autocomplete="tel">
+      </div>
+      <div class="span-2">
+        <label class="label" for="contato">Contato / responsável</label>
+        <input class="field" id="contato" name="contato" value="<%= fornecedor?.contato || '' %>" placeholder="Nome, WeChat, WhatsApp…">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h2 class="form-section-title">Endereço</h2>
+    <div class="form-grid form-grid-2">
+      <div>
+        <label class="label" for="cep">CEP</label>
+        <input class="field mono" id="cep" name="cep" inputmode="numeric" value="<%= fornecedor?.cep ? formatCep(fornecedor.cep) : '' %>" placeholder="00000-000" maxlength="9">
+      </div>
+      <div>
+        <label class="label" for="uf">UF</label>
+        <input class="field mono" id="uf" name="uf" value="<%= fornecedor?.uf || '' %>" placeholder="SP" maxlength="2" style="text-transform:uppercase">
+      </div>
+      <div class="span-2">
+        <label class="label" for="logradouro">Logradouro</label>
+        <input class="field" id="logradouro" name="logradouro" value="<%= fornecedor?.logradouro || '' %>" placeholder="Rua, avenida…">
+      </div>
+      <div>
+        <label class="label" for="numero">Número</label>
+        <input class="field" id="numero" name="numero" value="<%= fornecedor?.numero || '' %>" placeholder="123">
+      </div>
+      <div>
+        <label class="label" for="complemento">Complemento</label>
+        <input class="field" id="complemento" name="complemento" value="<%= fornecedor?.complemento || '' %>" placeholder="Sala, bloco…">
+      </div>
+      <div>
+        <label class="label" for="bairro">Bairro</label>
+        <input class="field" id="bairro" name="bairro" value="<%= fornecedor?.bairro || '' %>">
+      </div>
+      <div>
+        <label class="label" for="cidade">Cidade</label>
+        <input class="field" id="cidade" name="cidade" value="<%= fornecedor?.cidade || '' %>">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h2 class="form-section-title">Observações</h2>
+    <div>
+      <label class="label" for="observacao">Notas internas</label>
+      <textarea class="field" id="observacao" name="observacao" rows="3" placeholder="Condições, lead time, observações…"><%= fornecedor?.observacao || '' %></textarea>
+    </div>
+    <label class="flex items-center gap-2" style="margin-top:0.75rem">
+      <input type="checkbox" name="ativo" <%= !fornecedor || fornecedor.ativo ? 'checked' : '' %>>
+      Ativo (aparece no seletor de pedidos)
+    </label>
+  </div>
+
+  <div class="form-actions">
+    <a href="/fornecedores" class="btn btn-ghost">Cancelar</a>
+    <button type="submit" class="btn btn-primary" id="btn-salvar-fornecedor"><%= fornecedor && fornecedor.id ? 'Salvar alterações' : 'Cadastrar fornecedor' %></button>
+  </div>
+</form>
+
+<script src="/js/fornecedor-form.js"></script>
+
+<%- include('../partials/footer') %>

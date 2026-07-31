@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> · Importação</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@450;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/relatorio-print.css">
+</head>
+<body class="relatorio-page<%= !saldo.coberto ? ' is-pendente' : '' %>">
+<%
+  const invoice = Number(saldo.invoice_usd) || 0;
+  const falta = Number(saldo.falta_usd) || 0;
+  const geradoLabel = geradoEm.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const statusLabel = typeof statusPedidoLabel === 'function'
+    ? statusPedidoLabel(pedido.status)
+    : pedido.status;
+%>
+
+  <div class="relatorio-toolbar no-print">
+    <div class="relatorio-toolbar-inner">
+      <a href="/desembaraco/<%= pedido.id %>" class="rel-btn rel-btn-ghost">← Voltar ao desembaraço</a>
+      <div class="relatorio-toolbar-actions">
+        <button type="button" class="rel-btn rel-btn-ghost" onclick="window.print()">Imprimir</button>
+        <button type="button" class="rel-btn rel-btn-primary" onclick="window.print()">Salvar PDF</button>
+        <a href="/desembaraco/<%= pedido.id %>/excel" class="rel-btn rel-btn-ghost">Excel</a>
+      </div>
+    </div>
+  </div>
+
+  <main class="relatorio-doc">
+    <header class="relatorio-masthead">
+      <div class="relatorio-brand">
+        <span class="relatorio-mark" aria-hidden="true">IM</span>
+        <div>
+          <p class="relatorio-brand-name">Importação</p>
+          <p class="relatorio-doc-type">Relatório de Custo Unitário</p>
+        </div>
+      </div>
+      <div class="relatorio-doc-meta">
+        <p class="relatorio-doc-id mono"><%= pedido.codigo %></p>
+        <p class="relatorio-doc-date">Gerado em <%= geradoLabel %></p>
+      </div>
+    </header>
+
+    <section class="relatorio-identity" aria-label="Identificação do pedido">
+      <div>
+        <p class="rel-label">Pedido</p>
+        <p class="rel-value mono"><%= pedido.codigo %></p>
+      </div>
+      <div>
+        <p class="rel-label">Fornecedor</p>
+        <p class="rel-value"><%= pedido.fornecedor || '—' %></p>
+      </div>
+      <div>
+        <p class="rel-label">Status</p>
+        <p class="rel-value"><%= statusLabel %></p>
+      </div>
+      <div>
+        <p class="rel-label">Cobertura</p>
+        <p class="rel-value">
+          <span class="rel-pill <%= saldo.coberto ? 'rel-pill-ok' : 'rel-pill-warn' %>">
+            <%= saldo.coberto ? 'Coberto' : 'Pendente' %> · <%= coberturaPct %>%
+          </span>
+        </p>
+      </div>
+    </section>
+
+    <% if (!saldo.coberto) { %>
+      <p class="relatorio-alert" role="status">
+        Pedido não quitado no saldo (falta <%= moneyUsd(falta) %>).
+        Custo unitário e custo do produto em R$ aparecem como “—” até a cobertura completa.
+      </p>
+    <% } %>
+
+    <section class="relatorio-section">
+      <h2 class="relatorio-section-title">Parâmetros do custo</h2>
+      <div class="relatorio-params">
+        <div class="rel-param">
+          <p class="rel-label">Invoice USD</p>
+          <p class="rel-param-value mono"><%= moneyUsd(invoice) %></p>
+        </div>
+        <div class="rel-param">
+          <p class="rel-label">Custo produto BRL</p>
+          <p class="rel-param-value mono"><%= saldo.coberto ? moneyBrl(custoProdutoBrl) : '—' %></p>
+        </div>
+        <div class="rel-param">
+          <p class="rel-label">Custo desembaraço L</p>
+          <p class="rel-param-value mono"><%= moneyBrl(desembaraco.custo_desembaraco_total) %></p>
+        </div>
+        <div class="rel-param">
+          <p class="rel-label">Divisor BC ICMS</p>
+          <p class="rel-param-value mono"><%= numberBr(desembaraco.divisor_bc_icms, 4) %></p>
+        </div>
+        <% if (desembaraco.custo_total_atual != null) { %>
+          <div class="rel-param">
+            <p class="rel-label">Custo landado</p>
+            <p class="rel-param-value mono"><%= moneyBrl(desembaraco.custo_total_atual) %></p>
+          </div>
+        <% } %>
+        <% if (custoDelta) { %>
+          <div class="rel-param">
+            <p class="rel-label">Variação do custo</p>
+            <% if (custoDelta.aumentou) { %>
+              <p class="rel-param-value mono is-bad">+ <%= moneyBrl(custoDelta.delta) %></p>
+            <% } else if (custoDelta.diminuiu) { %>
+              <p class="rel-param-value mono is-ok">− <%= moneyBrl(Math.abs(custoDelta.delta)) %></p>
+            <% } else { %>
+              <p class="rel-param-value mono">Sem variação</p>
+            <% } %>
+            <p class="rel-param-meta mono">Anterior <%= moneyBrl(custoDelta.anterior) %></p>
+          </div>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="relatorio-section">
+      <div class="relatorio-section-head">
+        <h2 class="relatorio-section-title">Custo unitário por item</h2>
+        <p class="relatorio-formula">
+          Total custo unit = Custo unit R$ + Custo imposto + Outras unit
+        </p>
+      </div>
+
+      <% if (!linhas.length) { %>
+        <p class="relatorio-empty">Este pedido ainda não tem itens.</p>
+      <% } else { %>
+        <div class="relatorio-sheet-wrap">
+          <table class="relatorio-table relatorio-sheet">
+            <thead>
+              <tr class="relatorio-group-row">
+                <th colspan="3" class="grp grp-id col-sticky">Identificação</th>
+                <th colspan="3" class="grp grp-usd">USD</th>
+                <th colspan="2" class="grp grp-produto">Produto R$</th>
+                <th colspan="14" class="grp grp-imposto">Impostos</th>
+                <th colspan="3" class="grp grp-outras">Outras</th>
+                <th colspan="1" class="grp grp-resultado">Resultado</th>
+              </tr>
+              <tr class="relatorio-field-row">
+                <th class="col-sticky grp-start-id">REF</th>
+                <th>NCM</th>
+                <th class="num grp-end-id">Qtd</th>
+                <th class="num grp-start-usd">Unit USD</th>
+                <th class="num">Amount USD</th>
+                <th class="num grp-end-usd">%</th>
+                <th class="num grp-start-produto">Custo R$</th>
+                <th class="num grp-end-produto">Custo unit R$</th>
+                <th class="num grp-start-imposto">Base J</th>
+                <th class="num">II %</th>
+                <th class="num">II</th>
+                <th class="num">IPI %</th>
+                <th class="num">IPI</th>
+                <th class="num">PIS %</th>
+                <th class="num">PIS</th>
+                <th class="num">COFINS %</th>
+                <th class="num">COFINS</th>
+                <th class="num">BC ICMS</th>
+                <th class="num">ICMS %</th>
+                <th class="num">ICMS</th>
+                <th class="num">Custo imposto</th>
+                <th class="num grp-end-imposto">% imposto</th>
+                <th class="num grp-start-outras">Outras desp.</th>
+                <th class="num">% s/ unit</th>
+                <th class="num grp-end-outras">Outras unit</th>
+                <th class="num col-highlight grp-start-resultado grp-end-resultado">Total custo unit</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% linhas.forEach(function(linha) { %>
+                <tr>
+                  <td class="col-sticky grp-start-id" title="<%= linha.descricao || '' %>"><%= linha.referencia %></td>
+                  <td class="mono"><%= linha.ncm || '—' %></td>
+                  <td class="num mono grp-end-id"><%= numberBr(linha.quantidade, 0) %></td>
+                  <td class="num mono grp-start-usd"><%= numberBr(linha.preco_usd, 2) %></td>
+                  <td class="num mono"><%= numberBr(linha.amount_usd, 2) %></td>
+                  <td class="num mono grp-end-usd"><%= percentBr(linha.pct_rateio) %></td>
+                  <td class="num mono grp-start-produto"><%= saldo.coberto ? numberBr(linha.custo_rs, 2) : '—' %></td>
+                  <td class="num mono grp-end-produto"><%= saldo.coberto ? numberBr(linha.custo_unit_rs, 2) : '—' %></td>
+                  <td class="num mono grp-start-imposto"><%= numberBr(linha.base_desembaraco, 2) %></td>
+                  <td class="num mono"><%= percentBr(linha.aliq_ii) %></td>
+                  <td class="num mono"><%= numberBr(linha.ii_valor, 2) %></td>
+                  <td class="num mono"><%= percentBr(linha.aliq_ipi) %></td>
+                  <td class="num mono"><%= numberBr(linha.ipi_valor, 2) %></td>
+                  <td class="num mono"><%= percentBr(linha.aliq_pis) %></td>
+                  <td class="num mono"><%= numberBr(linha.pis_rs, 2) %></td>
+                  <td class="num mono"><%= percentBr(linha.aliq_cofins) %></td>
+                  <td class="num mono"><%= numberBr(linha.cofins_valor, 2) %></td>
+                  <td class="num mono"><%= numberBr(linha.bc_icms, 2) %></td>
+                  <td class="num mono"><%= percentBr(linha.aliq_icms) %></td>
+                  <td class="num mono"><%= numberBr(linha.valor_icms, 2) %></td>
+                  <td class="num mono"><%= numberBr(linha.custo_imposto, 2) %></td>
+                  <td class="num mono grp-end-imposto"><%= saldo.coberto && linha.pct_imposto != null ? percentBr(linha.pct_imposto) : '—' %></td>
+                  <td class="num mono grp-start-outras"><%= numberBr(linha.outras_despesas, 2) %></td>
+                  <td class="num mono"><%= saldo.coberto && linha.pct_outras_despesas != null ? percentBr(linha.pct_outras_despesas) : '—' %></td>
+                  <td class="num mono grp-end-outras"><%= numberBr(linha.outras_despesas_unit, 2) %></td>
+                  <td class="num mono col-highlight grp-start-resultado grp-end-resultado"><%= saldo.coberto ? numberBr(linha.total_custo_unit, 2) : '—' %></td>
+                </tr>
+              <% }) %>
+              <tr class="relatorio-total">
+                <td class="col-sticky grp-start-id">TOTAL</td>
+                <td></td>
+                <td class="num mono grp-end-id"><%= numberBr(totais.quantidade, 0) %></td>
+                <td class="grp-start-usd"></td>
+                <td class="num mono"><%= numberBr(totais.amount_usd, 2) %></td>
+                <td class="num mono grp-end-usd">100%</td>
+                <td class="num mono grp-start-produto"><%= saldo.coberto ? numberBr(totais.custo_rs, 2) : '—' %></td>
+                <td class="grp-end-produto"></td>
+                <td class="grp-start-imposto"></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td class="num mono"><%= numberBr(totais.custo_imposto, 2) %></td>
+                <td class="grp-end-imposto"></td>
+                <td class="num mono grp-start-outras"><%= numberBr(totais.outras_despesas, 2) %></td>
+                <td></td>
+                <td class="grp-end-outras"></td>
+                <td class="col-highlight grp-start-resultado grp-end-resultado"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </section>
+
+    <section class="relatorio-totals-bar" aria-label="Totais do relatório">
+      <div>
+        <p class="rel-label">Invoice</p>
+        <p class="rel-value mono"><%= moneyUsd(totais.amount_usd) %></p>
+      </div>
+      <div>
+        <p class="rel-label">Custo produto</p>
+        <p class="rel-value mono"><%= saldo.coberto ? moneyBrl(totais.custo_rs) : '—' %></p>
+      </div>
+      <div>
+        <p class="rel-label">Impostos</p>
+        <p class="rel-value mono"><%= moneyBrl(totais.custo_imposto) %></p>
+      </div>
+      <div>
+        <p class="rel-label">Outras despesas</p>
+        <p class="rel-value mono"><%= moneyBrl(totais.outras_despesas) %></p>
+      </div>
+      <% if (desembaraco.custo_total_atual != null) { %>
+        <div>
+          <p class="rel-label">Custo landado</p>
+          <p class="rel-value mono"><%= moneyBrl(desembaraco.custo_total_atual) %></p>
+        </div>
+      <% } %>
+    </section>
+
+    <% if (alocacoes && alocacoes.length) { %>
+    <section class="relatorio-section relatorio-anexo">
+      <h2 class="relatorio-section-title">Anexo — Alocações</h2>
+      <table class="relatorio-table relatorio-table-compact">
+        <thead>
+          <tr>
+            <th>Pagamento</th>
+            <th class="num">USD</th>
+            <th class="num">Dólar</th>
+            <th class="num">BRL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% alocacoes.forEach(function(a) { %>
+            <tr>
+              <td>#<%= a.pagamento_id %> · <%= a.pagamento_descricao %></td>
+              <td class="num mono"><%= moneyUsd(a.valor_usd) %></td>
+              <td class="num mono"><%= numberBr(a.dolar_dia, 4) %></td>
+              <td class="num mono"><%= moneyBrl(a.valor_brl) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </section>
+    <% } %>
+
+    <footer class="relatorio-footer">
+      <p>
+        Relatório de Custo Unitário · Importação · Pedido
+        <span class="mono"><%= pedido.codigo %></span>
+        · <%= geradoLabel %>
+      </p>
+      <p class="relatorio-footer-note">
+        Valores de custo unitário dependem da cobertura integral do invoice no saldo e dos parâmetros de desembaraço salvos.
+      </p>
+    </footer>
+  </main>
+
+  <% if (autoPrint) { %>
+  <script>
+    window.addEventListener('load', function () {
+      setTimeout(function () { window.print(); }, 250);
+    });
+  </script>
+  <% } %>
+</body>
+</html>

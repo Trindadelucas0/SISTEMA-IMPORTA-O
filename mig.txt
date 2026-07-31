@@ -1,0 +1,2 @@
+-- arquivo: sql/migrate_status_pedido.sql
+UPDATE pedidos SET status = 'embarcada' WHERE status IN ('desembarcada', 'fechada');

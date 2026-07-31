@@ -1,0 +1,65 @@
+<%- include('../partials/header') %>
+
+<section class="page-header mb-4 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <p class="page-eyebrow">Cadastro</p>
+    <h1 class="page-title">Fornecedores</h1>
+    <p class="page-sub">Cadastre com CNPJ (Brasil) ou dados do exterior. Cada pedido é vinculado a um fornecedor.</p>
+  </div>
+  <a href="/fornecedores/novo" class="btn btn-primary">Novo fornecedor</a>
+</section>
+
+<% if (typeof error !== 'undefined' && error) { %>
+  <p class="alert alert-error" role="alert"><%= error %></p>
+<% } %>
+
+<% if (!fornecedores.length) { %>
+  <p class="empty-state">Nenhum fornecedor cadastrado. <a class="link-action" href="/fornecedores/novo">Cadastrar o primeiro</a>.</p>
+<% } else { %>
+  <div class="panel">
+    <p class="table-scroll-hint px-3 pt-2">Deslize a tabela para o lado para ver mais colunas.</p>
+    <div class="table-panel" style="border:0;border-radius:0">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th class="col-hide-sm">CNPJ</th>
+            <th class="col-hide-sm">País / Cidade</th>
+            <th class="col-hide-sm">Contato</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% fornecedores.forEach(function(f) { %>
+            <tr>
+              <td class="font-medium">
+                <%= f.nome %>
+                <% if (f.razao_social && f.razao_social !== f.nome) { %>
+                  <div class="stat-meta"><%= f.razao_social %></div>
+                <% } %>
+              </td>
+              <td class="mono col-hide-sm"><%= f.cnpj ? formatCnpj(f.cnpj) : '—' %></td>
+              <td class="col-hide-sm">
+                <%= f.pais || '—' %>
+                <% if (f.cidade) { %> · <%= f.cidade %><%= f.uf ? '/' + f.uf : '' %><% } %>
+              </td>
+              <td class="col-hide-sm">
+                <%= f.telefone || f.email || f.contato || '—' %>
+              </td>
+              <td><span class="badge <%= f.ativo ? 'badge-ok' : 'badge-danger' %>"><%= f.ativo ? 'ativo' : 'inativo' %></span></td>
+              <td class="text-right space-x-2">
+                <a href="/fornecedores/<%= f.id %>/editar" class="link-action">Editar</a>
+                <form class="inline" method="POST" action="/fornecedores/<%= f.id %>?_method=DELETE" onsubmit="return confirm('Excluir fornecedor?')">
+                  <button type="submit" class="link-danger">Excluir</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

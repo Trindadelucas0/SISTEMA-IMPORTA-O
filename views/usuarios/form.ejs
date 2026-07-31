@@ -1,0 +1,128 @@
+<%- include('../partials/header') %>
+
+<section class="page-header mb-4">
+  <div>
+    <p class="page-eyebrow">Administração</p>
+    <h1 class="page-title"><%= usuario && usuario.id ? 'Editar usuário' : 'Novo usuário' %></h1>
+    <p class="page-sub">Defina o acesso por aba. O preset Financeiro libera só Pagamentos e Saldo.</p>
+  </div>
+</section>
+
+<% if (error) { %>
+  <div class="alert alert-error" role="alert"><%= error %></div>
+<% } %>
+
+<%
+  const u = usuario || { username: '', nome: '', role: 'user', permissoes: [], ativo: true };
+  const perms = Array.isArray(u.permissoes) ? u.permissoes : [];
+  const isEdit = !!(usuario && usuario.id);
+%>
+
+<form
+  method="POST"
+  action="<%= isEdit ? '/usuarios/' + usuario.id + '?_method=PUT' : '/usuarios' %>"
+  class="form-panel form-shell"
+>
+  <div class="form-section">
+    <h2 class="form-section-title">Dados</h2>
+    <div class="form-grid form-grid-2">
+      <div>
+        <label class="label" for="nome">Nome</label>
+        <input class="field" id="nome" name="nome" required value="<%= u.nome || '' %>">
+      </div>
+      <div>
+        <label class="label" for="username">Usuário (login)</label>
+        <input class="field" id="username" name="username" required autocomplete="off"
+               value="<%= u.username || '' %>">
+      </div>
+      <% if (!isEdit) { %>
+        <div class="span-2">
+          <label class="label" for="password">Senha inicial</label>
+          <input class="field" id="password" name="password" type="password" required
+                 autocomplete="new-password" minlength="6">
+          <p class="field-hint">Mínimo 6 caracteres.</p>
+        </div>
+      <% } %>
+      <div>
+        <label class="label" for="role">Perfil</label>
+        <select class="field" id="role" name="role">
+          <option value="user" <%= u.role !== 'admin' ? 'selected' : '' %>>Usuário</option>
+          <option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>Administrador</option>
+        </select>
+      </div>
+      <div>
+        <label class="label" for="ativo">Status</label>
+        <select class="field" id="ativo" name="ativo">
+          <option value="true" <%= u.ativo !== false ? 'selected' : '' %>>Ativo</option>
+          <option value="false" <%= u.ativo === false ? 'selected' : '' %>>Inativo</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section" id="perms-section">
+    <h2 class="form-section-title">Abas liberadas</h2>
+    <p class="field-hint" style="margin-bottom:0.75rem">
+      Admin tem acesso total. Para usuário comum, marque as abas ou use o preset.
+    </p>
+    <div class="toolbar" style="margin-bottom:0.85rem">
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-financeiro">Preset Financeiro</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-todas">Marcar todas</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-limpar">Limpar</button>
+    </div>
+    <div class="form-grid form-grid-2" id="perms-list">
+      <% modulos.forEach(function(m) { %>
+        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.875rem">
+          <input type="checkbox" name="permissoes" value="<%= m.id %>"
+                 class="perm-check"
+                 <%= perms.includes(m.id) ? 'checked' : '' %>>
+          <%= m.label %>
+        </label>
+      <% }) %>
+    </div>
+    <input type="hidden" name="preset" id="preset" value="">
+  </div>
+
+  <div class="form-actions">
+    <a href="/usuarios" class="btn btn-ghost">Cancelar</a>
+    <button type="submit" class="btn btn-primary"><%= isEdit ? 'Salvar' : 'Criar' %></button>
+  </div>
+</form>
+
+<script>
+(function () {
+  var financeiro = <%- JSON.stringify(presetFinanceiro) %>;
+  var role = document.getElementById('role');
+  var section = document.getElementById('perms-section');
+  var preset = document.getElementById('preset');
+  var checks = function () { return Array.prototype.slice.call(document.querySelectorAll('.perm-check')); };
+
+  function syncRole() {
+    var isAdmin = role.value === 'admin';
+    section.style.opacity = isAdmin ? '0.55' : '1';
+    checks().forEach(function (c) { c.disabled = isAdmin; });
+  }
+
+  document.getElementById('btn-financeiro').addEventListener('click', function () {
+    checks().forEach(function (c) {
+      c.checked = financeiro.indexOf(c.value) !== -1;
+    });
+    preset.value = 'financeiro';
+  });
+  document.getElementById('btn-todas').addEventListener('click', function () {
+    checks().forEach(function (c) { c.checked = true; });
+    preset.value = '';
+  });
+  document.getElementById('btn-limpar').addEventListener('click', function () {
+    checks().forEach(function (c) { c.checked = false; });
+    preset.value = '';
+  });
+  checks().forEach(function (c) {
+    c.addEventListener('change', function () { preset.value = ''; });
+  });
+  role.addEventListener('change', syncRole);
+  syncRole();
+})();
+</script>
+
+<%- include('../partials/footer') %>

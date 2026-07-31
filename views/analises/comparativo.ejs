@@ -1,0 +1,161 @@
+<%- include('../partials/header') %>
+
+<section class="page-header mb-4 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <p class="page-eyebrow">Análises</p>
+    <h1 class="page-title">Comparativo de última compra</h1>
+    <p class="page-sub">Por referência do item: última compra vs anterior, com fornecedor e variação de preço/quantidade.</p>
+  </div>
+  <a href="/analises" class="btn btn-ghost btn-sm">Voltar ao hub</a>
+</section>
+
+<section class="kpi-grid mb-4">
+  <div class="stat">
+    <p class="stat-label">Itens</p>
+    <p class="stat-value"><%= kpis.totalItens %></p>
+    <p class="stat-meta"><%= kpis.comHistorico %> com histórico</p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Alta de preço</p>
+    <p class="stat-value text-bad"><%= kpis.aumentos %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Queda de preço</p>
+    <p class="stat-value text-ok"><%= kpis.quedas %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Trocas fornecedor</p>
+    <p class="stat-value"><%= kpis.trocas %></p>
+  </div>
+</section>
+
+<section class="kpi-grid mb-4" style="grid-template-columns:repeat(auto-fit,minmax(10rem,1fr))">
+  <div class="stat">
+    <p class="stat-label">Média Δ preço</p>
+    <p class="stat-value"><%= kpis.mediaVariacaoPct != null ? (kpis.mediaVariacaoPct > 0 ? '+' : '') + numberBr(kpis.mediaVariacaoPct, 1) + '%' : '—' %></p>
+  </div>
+</section>
+
+<section class="panel mb-4">
+  <div class="panel-head"><h2>Filtros</h2></div>
+  <form method="GET" action="/analises/comparativo" class="panel-body">
+    <div class="form-grid form-grid-2">
+      <div>
+        <label class="label" for="q">Busca</label>
+        <input class="field" id="q" name="q" value="<%= filtros.q || '' %>" placeholder="Referência ou descrição">
+      </div>
+      <div>
+        <label class="label" for="fornecedor_id">Fornecedor (última compra)</label>
+        <select class="field" id="fornecedor_id" name="fornecedor_id">
+          <option value="">Todos</option>
+          <% fornecedores.forEach(function(f) { %>
+            <option value="<%= f.id %>" <%= String(filtros.fornecedor_id) === String(f.id) ? 'selected' : '' %>><%= f.nome %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="flex flex-wrap items-center gap-4" style="grid-column:1/-1">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" name="somenteVariacao" value="1" <%= filtros.somenteVariacao ? 'checked' : '' %>>
+          Só com variação de preço
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" name="somenteTroca" value="1" <%= filtros.somenteTroca ? 'checked' : '' %>>
+          Só troca de fornecedor
+        </label>
+      </div>
+    </div>
+    <div class="form-actions form-actions-start" style="margin-top:0.75rem">
+      <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+      <a href="/analises/comparativo" class="btn btn-ghost btn-sm">Limpar</a>
+    </div>
+  </form>
+</section>
+
+<% if (!itens.length) { %>
+  <p class="empty-state">Nenhum item encontrado com esses filtros.</p>
+<% } else { %>
+  <div class="panel">
+    <p class="table-scroll-hint px-3 pt-2">Deslize a tabela para o lado para ver mais colunas.</p>
+    <div class="table-panel" style="border:0;border-radius:0">
+      <table>
+        <thead>
+          <tr>
+            <th>Referência</th>
+            <th class="col-hide-sm">Descrição</th>
+            <th>Último pedido</th>
+            <th>Fornecedor</th>
+            <th>Preço</th>
+            <th class="col-hide-sm">Qtd</th>
+            <th class="col-hide-sm">Anterior</th>
+            <th>Δ preço</th>
+            <th class="col-hide-sm">Δ qtd</th>
+            <th class="col-hide-sm">Melhor forn.</th>
+            <th>Alertas</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% itens.forEach(function(it) { %>
+            <tr>
+              <td class="mono font-medium">
+                <a class="link-action" href="/analises/comparativo/item/<%= encodeURIComponent(it.referencia) %>"><%= it.referencia %></a>
+              </td>
+              <td class="col-hide-sm text-xs" style="color:var(--muted)"><%= it.descricao || '—' %></td>
+              <td class="mono">
+                <% if (it.ultima) { %>
+                  <a class="link-action" href="/pedidos/<%= it.ultima.pedido_id %>"><%= it.ultima.pedido_codigo %></a>
+                  <div class="stat-meta"><%= formatDateBr(it.ultima.data) %></div>
+                <% } else { %>—<% } %>
+              </td>
+              <td><%= it.ultima?.fornecedor || '—' %></td>
+              <td class="num"><%= it.ultima ? moneyUsd(it.ultima.preco_usd) : '—' %></td>
+              <td class="num col-hide-sm"><%= it.ultima ? numberBr(it.ultima.quantidade, 0) : '—' %></td>
+              <td class="col-hide-sm">
+                <% if (it.anterior) { %>
+                  <span class="mono"><%= it.anterior.pedido_codigo %></span>
+                  · <%= it.anterior.fornecedor || '—' %>
+                  · <%= moneyUsd(it.anterior.preco_usd) %>
+                <% } else { %>—<% } %>
+              </td>
+              <td class="num">
+                <% if (it.deltaPrecoPct == null) { %>
+                  —
+                <% } else if (it.aumentouPreco) { %>
+                  <span class="text-bad">+<%= numberBr(it.deltaPrecoPct, 1) %>%</span>
+                <% } else if (it.diminuiuPreco) { %>
+                  <span class="text-ok"><%= numberBr(it.deltaPrecoPct, 1) %>%</span>
+                <% } else { %>
+                  0%
+                <% } %>
+              </td>
+              <td class="num col-hide-sm">
+                <% if (it.deltaQtdPct == null) { %>
+                  —
+                <% } else if (it.aumentouQtd) { %>
+                  <span class="text-bad">+<%= numberBr(it.deltaQtdPct, 1) %>%</span>
+                <% } else if (it.diminuiuQtd) { %>
+                  <span class="text-ok"><%= numberBr(it.deltaQtdPct, 1) %>%</span>
+                <% } else { %>
+                  0%
+                <% } %>
+              </td>
+              <td class="col-hide-sm text-xs">
+                <% if (it.melhorFornecedor) { %>
+                  <%= it.melhorFornecedor.fornecedor %>
+                  <div class="stat-meta mono"><%= moneyUsd(it.melhorFornecedor.precoMedio) %></div>
+                <% } else { %>—<% } %>
+              </td>
+              <td>
+                <% if (it.aumentouPreco) { %><span class="badge badge-danger">alta</span><% } %>
+                <% if (it.diminuiuPreco) { %><span class="badge badge-ok">queda</span><% } %>
+                <% if (it.trocouFornecedor) { %><span class="badge badge-warn">troca forn.</span><% } %>
+                <% if (!it.aumentouPreco && !it.diminuiuPreco && !it.trocouFornecedor) { %>—<% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

@@ -44,6 +44,7 @@
             <th>Código</th>
             <th class="col-hide-sm">Fornecedor</th>
             <th>Status</th>
+            <th class="col-hide-sm">Prevista chegada</th>
             <th class="col-hide-sm">Itens</th>
             <th>Total USD</th>
             <th>Preenchimento</th>
@@ -55,7 +56,8 @@
             <tr>
               <td class="font-semibold mono"><%= p.codigo %></td>
               <td class="col-hide-sm"><%= p.fornecedor || '—' %></td>
-              <td><span class="badge badge-info"><%= p.status %></span></td>
+              <td><%- include('../partials/status-pedido', { pedidoId: p.id, status: p.status }) %></td>
+              <td class="col-hide-sm mono"><%= formatDateBr(p.data_prevista_chegada) %></td>
               <td class="num col-hide-sm"><%= p.qtd_itens %></td>
               <td class="num"><%= moneyUsd(p.total_usd != null ? p.total_usd : p.invoice_usd) %></td>
               <td class="fill-cell">
@@ -71,7 +73,7 @@
               </td>
               <td class="text-right space-x-2">
                 <a href="/pedidos/<%= p.id %>" class="link-action">Detalhe</a>
-                <a href="/desembaraco/<%= p.id %>" class="link-action col-hide-sm">Desembaraço</a>
+                <a href="/desembaraco/<%= p.id %>" class="link-action col-hide-sm">Compras</a>
               </td>
             </tr>
           <% }) %>

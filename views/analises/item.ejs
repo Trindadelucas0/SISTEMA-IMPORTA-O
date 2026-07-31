@@ -1,0 +1,260 @@
+<%- include('../partials/header') %>
+
+<section class="page-header mb-4 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <p class="page-eyebrow">Análises · Item</p>
+    <h1 class="page-title mono"><%= item.referencia %></h1>
+    <p class="page-sub"><%= item.descricao || 'Histórico de compras desta referência' %></p>
+  </div>
+  <div class="toolbar">
+    <a href="/analises/comparativo" class="btn btn-ghost btn-sm">Comparativo</a>
+    <a href="/analises" class="btn btn-ghost btn-sm">Hub</a>
+  </div>
+</section>
+
+<section class="kpi-grid mb-4">
+  <div class="stat">
+    <p class="stat-label">Compras</p>
+    <p class="stat-value"><%= item.qtdCompras %></p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Último preço</p>
+    <p class="stat-value"><%= item.ultima ? moneyUsd(item.ultima.preco_usd) : '—' %></p>
+    <% if (item.deltaPrecoPct != null) { %>
+      <p class="stat-meta <%= item.aumentouPreco ? 'text-bad' : (item.diminuiuPreco ? 'text-ok' : '') %>">
+        Δ <%= item.deltaPrecoPct > 0 ? '+' : '' %><%= numberBr(item.deltaPrecoPct, 1) %>%
+      </p>
+    <% } %>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Mín / Máx / Médio</p>
+    <p class="stat-value" style="font-size:1.1rem">
+      <%= item.precoMin != null ? moneyUsd(item.precoMin) : '—' %>
+      /
+      <%= item.precoMax != null ? moneyUsd(item.precoMax) : '—' %>
+      /
+      <%= item.precoMedio != null ? moneyUsd(item.precoMedio) : '—' %>
+    </p>
+  </div>
+  <div class="stat">
+    <p class="stat-label">Dias desde última</p>
+    <p class="stat-value"><%= item.diasDesdeUltima != null ? item.diasDesdeUltima : '—' %></p>
+  </div>
+</section>
+
+<% if (item.vsMediaPct != null || item.vsMelhorPct != null || item.deltaCustoUnitBrl != null) { %>
+<section class="kpi-grid mb-4">
+  <% if (item.vsMediaPct != null) { %>
+    <div class="stat">
+      <p class="stat-label">Vs preço médio</p>
+      <p class="stat-value <%= item.vsMediaPct > 0 ? 'text-bad' : (item.vsMediaPct < 0 ? 'text-ok' : '') %>">
+        <%= item.vsMediaPct > 0 ? '+' : '' %><%= numberBr(item.vsMediaPct, 1) %>%
+      </p>
+    </div>
+  <% } %>
+  <% if (item.vsMelhorPct != null) { %>
+    <div class="stat">
+      <p class="stat-label">Vs melhor fornecedor</p>
+      <p class="stat-value <%= item.vsMelhorPct > 0 ? 'text-bad' : (item.vsMelhorPct < 0 ? 'text-ok' : '') %>">
+        <%= item.vsMelhorPct > 0 ? '+' : '' %><%= numberBr(item.vsMelhorPct, 1) %>%
+      </p>
+      <% if (item.melhorFornecedor) { %>
+        <p class="stat-meta"><%= item.melhorFornecedor.fornecedor %></p>
+      <% } %>
+    </div>
+  <% } %>
+  <% if (item.deltaCustoUnitBrl != null) { %>
+    <div class="stat">
+      <p class="stat-label">Δ custo landado</p>
+      <% if (item.aumentouCusto) { %>
+        <p class="stat-value text-bad">+ <%= moneyBrl(item.deltaCustoUnitBrl) %></p>
+      <% } else if (item.diminuiuCusto) { %>
+        <p class="stat-value text-ok">− <%= moneyBrl(Math.abs(item.deltaCustoUnitBrl)) %></p>
+      <% } else { %>
+        <p class="stat-value">Sem variação</p>
+      <% } %>
+    </div>
+  <% } %>
+</section>
+<% } %>
+
+<% if (item.trocouFornecedor) { %>
+  <p class="alert alert-warn" role="status">
+    Troca de fornecedor: <%= item.anterior?.fornecedor %> → <%= item.ultima?.fornecedor %>.
+  </p>
+<% } %>
+
+<% if (item.ultima) { %>
+<section class="dash-grid mb-4">
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Última compra</h2>
+      <span class="badge badge-ok">atual</span>
+    </div>
+    <div class="panel-body">
+      <p class="mono font-semibold">
+        <a class="link-action" href="/pedidos/<%= item.ultima.pedido_id %>"><%= item.ultima.pedido_codigo %></a>
+        · <%= formatDateBr(item.ultima.data) %>
+      </p>
+      <p class="page-sub" style="margin-top:0.35rem">Fornecedor: <strong><%= item.ultima.fornecedor || '—' %></strong></p>
+      <div class="kpi-grid" style="margin-top:0.75rem">
+        <div class="stat">
+          <p class="stat-label">Preço USD</p>
+          <p class="stat-value"><%= moneyUsd(item.ultima.preco_usd) %></p>
+        </div>
+        <div class="stat">
+          <p class="stat-label">Qtd</p>
+          <p class="stat-value"><%= numberBr(item.ultima.quantidade, 0) %></p>
+        </div>
+        <div class="stat">
+          <p class="stat-label">Amount</p>
+          <p class="stat-value"><%= moneyUsd(item.ultima.amount_usd) %></p>
+        </div>
+        <% if (item.ultima.custo_unit_brl != null) { %>
+          <div class="stat">
+            <p class="stat-label">Custo unit. BRL</p>
+            <p class="stat-value"><%= moneyBrl(item.ultima.custo_unit_brl) %></p>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Compra anterior</h2>
+      <% if (item.anterior) { %><span class="badge">anterior</span><% } %>
+    </div>
+    <div class="panel-body">
+      <% if (!item.anterior) { %>
+        <p class="empty-state">Primeira compra desta referência — sem comparação.</p>
+      <% } else { %>
+        <p class="mono font-semibold">
+          <a class="link-action" href="/pedidos/<%= item.anterior.pedido_id %>"><%= item.anterior.pedido_codigo %></a>
+          · <%= formatDateBr(item.anterior.data) %>
+        </p>
+        <p class="page-sub" style="margin-top:0.35rem">Fornecedor: <strong><%= item.anterior.fornecedor || '—' %></strong></p>
+        <div class="kpi-grid" style="margin-top:0.75rem">
+          <div class="stat">
+            <p class="stat-label">Preço USD</p>
+            <p class="stat-value"><%= moneyUsd(item.anterior.preco_usd) %></p>
+            <% if (item.deltaPrecoPct != null) { %>
+              <p class="stat-meta <%= item.aumentouPreco ? 'text-bad' : (item.diminuiuPreco ? 'text-ok' : '') %>">
+                Δ <%= item.deltaPrecoPct > 0 ? '+' : '' %><%= numberBr(item.deltaPrecoPct, 1) %>%
+                (<%= item.deltaPrecoUsd > 0 ? '+' : '' %><%= moneyUsd(item.deltaPrecoUsd) %>)
+              </p>
+            <% } %>
+          </div>
+          <div class="stat">
+            <p class="stat-label">Qtd</p>
+            <p class="stat-value"><%= numberBr(item.anterior.quantidade, 0) %></p>
+            <% if (item.deltaQtdPct != null) { %>
+              <p class="stat-meta <%= item.aumentouQtd ? 'text-bad' : (item.diminuiuQtd ? 'text-ok' : '') %>">
+                Δ <%= item.deltaQtdPct > 0 ? '+' : '' %><%= numberBr(item.deltaQtdPct, 1) %>%
+              </p>
+            <% } %>
+          </div>
+          <div class="stat">
+            <p class="stat-label">Amount</p>
+            <p class="stat-value"><%= moneyUsd(item.anterior.amount_usd) %></p>
+            <% if (item.deltaAmountPct != null) { %>
+              <p class="stat-meta">
+                Δ <%= item.deltaAmountPct > 0 ? '+' : '' %><%= numberBr(item.deltaAmountPct, 1) %>%
+              </p>
+            <% } %>
+          </div>
+          <% if (item.anterior.custo_unit_brl != null) { %>
+            <div class="stat">
+              <p class="stat-label">Custo unit. BRL</p>
+              <p class="stat-value"><%= moneyBrl(item.anterior.custo_unit_brl) %></p>
+            </div>
+          <% } %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</section>
+<% } %>
+
+<section class="panel mb-4">
+  <div class="panel-head"><h2>Histórico de compras</h2></div>
+  <div class="table-panel" style="border:0;border-radius:0">
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Pedido</th>
+          <th>Fornecedor</th>
+          <th>Preço USD</th>
+          <th>Qtd</th>
+          <th>Amount</th>
+          <th class="col-hide-sm">Custo unit. BRL</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% item.historico.forEach(function(h, idx) { %>
+          <tr>
+            <td><%= formatDateBr(h.pedido_created_at) %></td>
+            <td class="mono">
+              <a class="link-action" href="/pedidos/<%= h.pedido_id %>"><%= h.pedido_codigo %></a>
+              <% if (idx === 0) { %><span class="badge badge-ok">última</span><% } %>
+              <% if (idx === 1) { %><span class="badge">anterior</span><% } %>
+            </td>
+            <td><%= h.fornecedor || '—' %></td>
+            <td class="num"><%= moneyUsd(h.preco_usd) %></td>
+            <td class="num"><%= numberBr(h.quantidade, 0) %></td>
+            <td class="num"><%= moneyUsd(h.amount_usd) %></td>
+            <td class="num col-hide-sm"><%= h.custo_unit_brl != null ? moneyBrl(h.custo_unit_brl) : '—' %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel mb-4">
+  <div class="panel-head"><h2>Por fornecedor</h2></div>
+  <% if (!item.ranking.length) { %>
+    <div class="panel-body"><p class="empty-state">Sem dados de fornecedor.</p></div>
+  <% } else { %>
+    <div class="table-panel" style="border:0;border-radius:0">
+      <table>
+        <thead>
+          <tr>
+            <th>Fornecedor</th>
+            <th>Compras</th>
+            <th class="col-hide-sm">% compras</th>
+            <th>Preço médio</th>
+            <th>Mín</th>
+            <th>Máx</th>
+            <th class="col-hide-sm">Spread</th>
+            <th class="col-hide-sm">Última compra</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% item.ranking.forEach(function(r, idx) { %>
+            <tr>
+              <td class="font-medium">
+                <%= r.fornecedor %>
+                <% if (idx === 0) { %><span class="badge badge-ok">melhor preço</span><% } %>
+                <% if (idx === item.ranking.length - 1 && item.ranking.length > 1) { %><span class="badge badge-danger">pior preço</span><% } %>
+              </td>
+              <td class="num"><%= r.qtdCompras %></td>
+              <td class="num col-hide-sm"><%= numberBr(r.pctCompras, 1) %>%</td>
+              <td class="num"><%= moneyUsd(r.precoMedio) %></td>
+              <td class="num"><%= moneyUsd(r.precoMin) %></td>
+              <td class="num"><%= moneyUsd(r.precoMax) %></td>
+              <td class="num col-hide-sm"><%= moneyUsd(r.spread) %></td>
+              <td class="col-hide-sm">
+                <%= r.ultimaPedido || '—' %>
+                · <%= formatDateBr(r.ultimaData) %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<%- include('../partials/footer') %>
