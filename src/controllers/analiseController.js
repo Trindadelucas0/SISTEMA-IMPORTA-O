@@ -68,6 +68,14 @@ async function comparativo(req, res, next) {
       await comparativoService.listarComparativo(filtros, {
         incluirCusto: false,
       });
+
+    const itensOrdenados = [...itens].sort((a, b) => {
+      const da = a.deltaPrecoPct == null ? -1 : Math.abs(a.deltaPrecoPct);
+      const db = b.deltaPrecoPct == null ? -1 : Math.abs(b.deltaPrecoPct);
+      if (db !== da) return db - da;
+      return String(a.referencia || '').localeCompare(String(b.referencia || ''), 'pt-BR');
+    });
+
     const [fornecedores, pedidos] = await Promise.all([
       Fornecedor.listarAtivos(),
       Pedido.listar(),
@@ -79,7 +87,7 @@ async function comparativo(req, res, next) {
       title,
       pageTitle: title,
       pageSub: subtituloComparativo(modo),
-      itens,
+      itens: itensOrdenados,
       kpis,
       filtros,
       fornecedores,

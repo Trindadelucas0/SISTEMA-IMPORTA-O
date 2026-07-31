@@ -1,5 +1,19 @@
 <%- include('../partials/header') %>
 
+<%
+  const termoBusca = typeof q !== 'undefined' ? q : '';
+  const paginaAtual = typeof page !== 'undefined' ? page : 1;
+  const totalItens = typeof total !== 'undefined' ? total : produtos.length;
+  const paginas = typeof totalPages !== 'undefined' ? totalPages : 1;
+  const listaSugestoes = Array.isArray(typeof sugestoes !== 'undefined' ? sugestoes : null) ? sugestoes : [];
+  function urlPagina(n) {
+    const params = [];
+    if (termoBusca) params.push('q=' + encodeURIComponent(termoBusca));
+    if (n > 1) params.push('page=' + n);
+    return '/produtos' + (params.length ? '?' + params.join('&') : '');
+  }
+%>
+
 <section class="page-header mb-4 flex flex-wrap items-end justify-between gap-3">
   <div>
     <p class="page-eyebrow">Cadastro</p>
@@ -9,10 +23,49 @@
   <a href="/produtos/novo" class="btn btn-primary">Novo produto</a>
 </section>
 
-<% if (!produtos.length) { %>
+<section class="panel mb-3">
+  <form method="GET" action="/produtos" class="panel-body produtos-busca" id="form-produtos-busca">
+    <label class="label" for="q">Buscar produto</label>
+    <div class="produtos-busca-row">
+      <div class="produtos-busca-control">
+        <input
+          class="field"
+          id="q"
+          name="q"
+          type="text"
+          value="<%= termoBusca %>"
+          placeholder="Nome ou código interno"
+          autocomplete="off"
+          role="combobox"
+          aria-expanded="false"
+          aria-controls="produtos-suggest-list"
+          aria-autocomplete="list"
+        >
+        <ul id="produtos-suggest-list" class="produto-combobox-list" role="listbox" hidden></ul>
+      </div>
+      <div class="filters-inline-actions">
+        <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+        <a href="/produtos" class="btn btn-ghost btn-sm">Limpar</a>
+      </div>
+    </div>
+    <p class="field-hint">Digite para ver sugestões. Maiúsculas e minúsculas são ignoradas.</p>
+    <script type="application/json" id="produtos-sugestoes-data"><%- JSON.stringify(listaSugestoes) %></script>
+  </form>
+</section>
+
+<% if (!totalItens && !termoBusca) { %>
   <p class="empty-state">Nenhum produto cadastrado.</p>
+<% } else if (!produtos.length) { %>
+  <p class="empty-state">Nenhum produto encontrado para “<%= termoBusca %>”.</p>
 <% } else { %>
   <div class="panel">
+    <div class="panel-head flex flex-wrap items-center justify-between gap-2">
+      <h2>
+        <%= totalItens %> produto<%= totalItens === 1 ? '' : 's' %>
+        <% if (termoBusca) { %><span class="stat-meta" style="font-weight:400;margin-left:0.35rem">filtro: <%= termoBusca %></span><% } %>
+      </h2>
+      <p class="stat-meta" style="margin:0">Página <%= paginaAtual %> de <%= paginas %></p>
+    </div>
     <p class="table-scroll-hint px-3 pt-2">Deslize a tabela para o lado para ver mais colunas.</p>
     <div class="table-panel" style="border:0;border-radius:0">
       <table>
@@ -45,7 +98,24 @@
         </tbody>
       </table>
     </div>
+    <% if (paginas > 1) { %>
+      <div class="produtos-pager">
+        <% if (paginaAtual > 1) { %>
+          <a class="btn btn-ghost btn-sm" href="<%= urlPagina(paginaAtual - 1) %>">Anterior</a>
+        <% } else { %>
+          <button type="button" class="btn btn-ghost btn-sm" disabled>Anterior</button>
+        <% } %>
+        <span class="produtos-pager-meta">Página <%= paginaAtual %> de <%= paginas %></span>
+        <% if (paginaAtual < paginas) { %>
+          <a class="btn btn-ghost btn-sm" href="<%= urlPagina(paginaAtual + 1) %>">Próxima</a>
+        <% } else { %>
+          <button type="button" class="btn btn-ghost btn-sm" disabled>Próxima</button>
+        <% } %>
+      </div>
+    <% } %>
   </div>
 <% } %>
+
+<script src="/js/produtos-index.js"></script>
 
 <%- include('../partials/footer') %>

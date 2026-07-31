@@ -3,12 +3,49 @@
 <%
   const modoAtual = typeof modo !== 'undefined' ? modo : 'automatico';
   const info = typeof modoInfo !== 'undefined' ? modoInfo : null;
-  let parLabel = '';
+
+  const labelPrecoA = modoAtual === 'dois_pedidos' ? 'Preço A' : (modoAtual === 'pedido_base' ? 'Preço' : 'Preço atual');
+  const labelPrecoB = modoAtual === 'dois_pedidos' ? 'Preço B' : 'Preço ant.';
+
+  let bannerHtml = null;
   if (modoAtual === 'dois_pedidos' && info?.pedidoA && info?.pedidoB) {
-    parLabel = info.pedidoA.codigo + ' vs ' + info.pedidoB.codigo;
+    bannerHtml = {
+      tipo: 'dois',
+      aCodigo: info.pedidoA.codigo,
+      aData: info.pedidoA.data,
+      aForn: info.pedidoA.fornecedor || '',
+      bCodigo: info.pedidoB.codigo,
+      bData: info.pedidoB.data,
+      bForn: info.pedidoB.fornecedor || '',
+    };
   } else if (modoAtual === 'pedido_base' && info?.pedidoBase) {
-    parLabel = 'Base: ' + info.pedidoBase.codigo;
+    bannerHtml = {
+      tipo: 'base',
+      aCodigo: info.pedidoBase.codigo,
+      aData: info.pedidoBase.data,
+      aForn: info.pedidoBase.fornecedor || '',
+    };
+  } else if (modoAtual === 'automatico' && itens.length) {
+    bannerHtml = { tipo: 'auto' };
   }
+
+  const estaveis = itens.filter(function (i) {
+    return i.anterior && !i.aumentouPreco && !i.diminuiuPreco;
+  }).length;
+  const semHistorico = itens.filter(function (i) { return !i.anterior; }).length;
+
+  const topVariacoes = itens
+    .filter(function (i) { return i.deltaPrecoPct != null && i.deltaPrecoPct !== 0; })
+    .slice(0, 8);
+
+  const chartTopLabels = topVariacoes.map(function (i) {
+    const ref = String(i.referencia || '');
+    return ref.length > 14 ? ref.slice(0, 12) + '…' : ref;
+  });
+  const chartTopValues = topVariacoes.map(function (i) { return i.deltaPrecoPct; });
+  const chartTopColors = topVariacoes.map(function (i) {
+    return i.aumentouPreco ? '#B42318' : '#067647';
+  });
 %>
 
 <section class="page-header mb-3 flex flex-wrap items-end justify-between gap-3">
@@ -46,23 +83,26 @@
 
 <section class="panel mb-3">
   <form method="GET" action="/analises/comparativo" class="panel-body" id="form-comparativo">
-    <div class="filters-inline-checks" style="margin-bottom:0.75rem">
-      <span class="label" style="margin:0">Modo</span>
-      <label class="flex items-center gap-2">
+    <p class="label" style="margin-bottom:0.4rem">Modo de comparação</p>
+    <div class="cmp-mode-tabs" role="radiogroup" aria-label="Modo de comparação">
+      <label class="cmp-mode-tab <%= modoAtual === 'automatico' ? 'is-active' : '' %>">
         <input type="radio" name="modo" value="automatico" <%= modoAtual === 'automatico' ? 'checked' : '' %> data-modo-toggle>
-        Automático (última vs anterior)
+        <span class="cmp-mode-tab-title">Automático</span>
+        <span class="cmp-mode-tab-desc">Última compra vs anterior da mesma referência</span>
       </label>
-      <label class="flex items-center gap-2">
+      <label class="cmp-mode-tab <%= modoAtual === 'dois_pedidos' ? 'is-active' : '' %>">
         <input type="radio" name="modo" value="dois_pedidos" <%= modoAtual === 'dois_pedidos' ? 'checked' : '' %> data-modo-toggle>
-        Dois pedidos
+        <span class="cmp-mode-tab-title">Dois pedidos</span>
+        <span class="cmp-mode-tab-desc">Itens em comum entre Pedido A e Pedido B</span>
       </label>
-      <label class="flex items-center gap-2">
+      <label class="cmp-mode-tab <%= modoAtual === 'pedido_base' ? 'is-active' : '' %>">
         <input type="radio" name="modo" value="pedido_base" <%= modoAtual === 'pedido_base' ? 'checked' : '' %> data-modo-toggle>
-        Pedido base
+        <span class="cmp-mode-tab-title">Pedido base</span>
+        <span class="cmp-mode-tab-desc">Itens do pedido vs compra anterior</span>
       </label>
     </div>
 
-    <div class="filters-inline" data-modo-panel="dois_pedidos" style="<%= modoAtual === 'dois_pedidos' ? '' : 'display:none' %>;margin-bottom:0.75rem">
+    <div class="filters-inline" data-modo-panel="dois_pedidos" style="<%= modoAtual === 'dois_pedidos' ? '' : 'display:none' %>;margin:0.85rem 0 0.75rem">
       <div>
         <label class="label" for="pedido_a">Pedido A (atual)</label>
         <select class="field" id="pedido_a" name="pedido_a">
@@ -87,7 +127,7 @@
       </div>
     </div>
 
-    <div data-modo-panel="pedido_base" style="<%= modoAtual === 'pedido_base' ? '' : 'display:none' %>;margin-bottom:0.75rem">
+    <div data-modo-panel="pedido_base" style="<%= modoAtual === 'pedido_base' ? '' : 'display:none' %>;margin:0.85rem 0 0.75rem">
       <label class="label" for="pedido_id">Pedido base</label>
       <select class="field" id="pedido_id" name="pedido_id">
         <option value="">Selecione</option>
@@ -99,7 +139,7 @@
       </select>
     </div>
 
-    <div class="filters-inline">
+    <div class="filters-inline" style="margin-top:0.75rem">
       <div>
         <label class="label" for="q">Busca</label>
         <input class="field" id="q" name="q" value="<%= filtros.q || '' %>" placeholder="Referência ou descrição">
@@ -135,14 +175,72 @@
   <p class="alert alert-warn" role="status">Os itens deste pedido ainda não têm compra anterior para comparar variação.</p>
 <% } %>
 
+<% if (bannerHtml && itens.length) { %>
+  <div class="cmp-banner mb-3" role="status">
+    <% if (bannerHtml.tipo === 'dois') { %>
+      <div class="cmp-banner-side">
+        <span class="cmp-banner-label">Pedido A</span>
+        <span class="cmp-banner-code mono"><%= bannerHtml.aCodigo %></span>
+        <span class="cmp-banner-meta"><%= formatDateBr(bannerHtml.aData) %><% if (bannerHtml.aForn) { %> · <span class="cell-clip" title="<%= bannerHtml.aForn %>"><%= bannerHtml.aForn %></span><% } %></span>
+      </div>
+      <div class="cmp-banner-vs" aria-hidden="true">→</div>
+      <div class="cmp-banner-side">
+        <span class="cmp-banner-label">Pedido B</span>
+        <span class="cmp-banner-code mono"><%= bannerHtml.bCodigo %></span>
+        <span class="cmp-banner-meta"><%= formatDateBr(bannerHtml.bData) %><% if (bannerHtml.bForn) { %> · <span class="cell-clip" title="<%= bannerHtml.bForn %>"><%= bannerHtml.bForn %></span><% } %></span>
+      </div>
+    <% } else if (bannerHtml.tipo === 'base') { %>
+      <div class="cmp-banner-side">
+        <span class="cmp-banner-label">Pedido base</span>
+        <span class="cmp-banner-code mono"><%= bannerHtml.aCodigo %></span>
+        <span class="cmp-banner-meta"><%= formatDateBr(bannerHtml.aData) %><% if (bannerHtml.aForn) { %> · <span class="cell-clip" title="<%= bannerHtml.aForn %>"><%= bannerHtml.aForn %></span><% } %></span>
+      </div>
+      <div class="cmp-banner-vs" aria-hidden="true">vs</div>
+      <div class="cmp-banner-side">
+        <span class="cmp-banner-label">Comparado com</span>
+        <span class="cmp-banner-code">compra anterior</span>
+        <span class="cmp-banner-meta">da mesma referência em cada item</span>
+      </div>
+    <% } else { %>
+      <div class="cmp-banner-side">
+        <span class="cmp-banner-label">Modo</span>
+        <span class="cmp-banner-code">Automático</span>
+        <span class="cmp-banner-meta">Última compra vs anterior por referência · itens com maior Δ no topo</span>
+      </div>
+    <% } %>
+  </div>
+<% } %>
+
 <% if (!itens.length) { %>
   <p class="empty-state"><%= typeof emptyMessage !== 'undefined' ? emptyMessage : 'Nenhum item encontrado com esses filtros.' %></p>
 <% } else { %>
+  <section class="cmp-charts panel mb-3">
+    <div class="panel-head"><h2>Visão da variação</h2></div>
+    <div class="cmp-charts-grid panel-body">
+      <div class="cmp-chart-card">
+        <p class="cmp-chart-title">Situação do preço</p>
+        <div class="cmp-chart-wrap">
+          <canvas id="chartCmpSituacao" aria-label="Gráfico de situação do preço"></canvas>
+        </div>
+      </div>
+      <div class="cmp-chart-card">
+        <p class="cmp-chart-title">Maiores variações</p>
+        <% if (!topVariacoes.length) { %>
+          <p class="stat-meta" style="padding:1rem 0">Nenhuma variação de preço neste resultado.</p>
+        <% } else { %>
+          <div class="cmp-chart-wrap cmp-chart-wrap-bar">
+            <canvas id="chartCmpTop" aria-label="Gráfico das maiores variações de preço"></canvas>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </section>
+
   <div class="panel">
     <div class="panel-head flex flex-wrap items-center justify-between gap-2">
       <h2>
         <%= itens.length %> item<%= itens.length === 1 ? '' : 's' %>
-        <% if (parLabel) { %><span class="stat-meta" style="font-weight:400;margin-left:0.35rem"><%= parLabel %></span><% } %>
+        <span class="stat-meta" style="font-weight:400;margin-left:0.35rem">ordenados por |Δ preço|</span>
       </h2>
       <p class="cmp-scroll-hint">Deslize para ver mais colunas</p>
     </div>
@@ -150,95 +248,88 @@
       <table>
         <thead>
           <tr>
-            <th class="col-sticky">Referência</th>
-            <th><%= modoAtual === 'dois_pedidos' ? 'Pedido A' : (modoAtual === 'pedido_base' ? 'Pedido' : 'Último') %></th>
-            <th>Fornecedor</th>
-            <th class="num">Preço / Qtd</th>
-            <th class="col-hide-sm"><%= modoAtual === 'dois_pedidos' ? 'Pedido B' : 'Anterior' %></th>
+            <th class="col-sticky">Item</th>
+            <th class="num"><%= labelPrecoA %></th>
+            <th class="num"><%= labelPrecoB %></th>
             <th class="num">Δ preço</th>
-            <th class="num col-hide-sm">Δ qtd</th>
-            <th class="col-hide-sm">Melhor forn.</th>
-            <th>Alertas</th>
+            <th class="col-hide-sm">Qtd <%= modoAtual === 'dois_pedidos' ? 'A → B' : 'atual → ant.' %></th>
+            <th class="col-hide-sm">Forn.</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
           <% itens.forEach(function(it) {
-            const fornAtual = (it.ultima && it.ultima.fornecedor) ? String(it.ultima.fornecedor).trim() : '';
-            const fornMelhor = (it.melhorFornecedor && it.melhorFornecedor.fornecedor) ? String(it.melhorFornecedor.fornecedor).trim() : '';
-            const melhorMesmo = fornMelhor && fornAtual && fornMelhor.toLowerCase() === fornAtual.toLowerCase();
+            const rowClass = it.aumentouPreco ? 'cmp-row-up' : (it.diminuiuPreco ? 'cmp-row-down' : '');
+            const qtdA = it.ultima ? numberBr(it.ultima.quantidade, 0) : '—';
+            const qtdB = it.anterior ? numberBr(it.anterior.quantidade, 0) : '—';
           %>
-            <tr>
+            <tr class="<%= rowClass %>">
               <td class="col-sticky">
                 <div class="cell-stack">
-                  <a class="link-action mono font-medium" href="/analises/comparativo/item/<%= encodeURIComponent(it.referencia) %>"><%= it.referencia %></a>
                   <% if (it.descricao) { %>
-                    <span class="stat-meta cell-clip cell-clip-md" title="<%= it.descricao %>"><%= it.descricao %></span>
+                    <span class="font-medium cell-clip cell-clip-md" title="<%= it.descricao %>"><%= it.descricao %></span>
+                  <% } %>
+                  <a class="link-action mono" href="/analises/comparativo/item/<%= encodeURIComponent(it.referencia) %>"><%= it.referencia %></a>
+                  <% if (it.ultima) { %>
+                    <span class="stat-meta">
+                      <a class="link-action" href="/pedidos/<%= it.ultima.pedido_id %>"><%= it.ultima.pedido_codigo %></a>
+                      · <%= formatDateBr(it.ultima.data) %>
+                      <% if (it.anterior) { %>
+                        <span aria-hidden="true"> · vs <%= it.anterior.pedido_codigo %></span>
+                      <% } %>
+                    </span>
                   <% } %>
                 </div>
               </td>
-              <td>
+              <td class="num">
                 <% if (it.ultima) { %>
-                  <div class="cell-stack">
-                    <a class="link-action mono" href="/pedidos/<%= it.ultima.pedido_id %>"><%= it.ultima.pedido_codigo %></a>
-                    <span class="stat-meta"><%= formatDateBr(it.ultima.data) %></span>
-                  </div>
-                <% } else { %>—<% } %>
-              </td>
-              <td>
-                <% if (it.ultima?.fornecedor) { %>
-                  <span class="cell-clip cell-clip-md" title="<%= it.ultima.fornecedor %>"><%= it.ultima.fornecedor %></span>
+                  <span class="mono font-medium"><%= moneyUsd(it.ultima.preco_usd) %></span>
                 <% } else { %>—<% } %>
               </td>
               <td class="num">
-                <% if (it.ultima) { %>
-                  <div class="cell-stack" style="align-items:flex-end">
-                    <span class="mono font-medium"><%= moneyUsd(it.ultima.preco_usd) %></span>
-                    <span class="stat-meta"><%= numberBr(it.ultima.quantidade, 0) %> un</span>
-                  </div>
-                <% } else { %>—<% } %>
-              </td>
-              <td class="col-hide-sm">
                 <% if (it.anterior) { %>
-                  <div class="cell-stack">
-                    <span class="mono"><%= it.anterior.pedido_codigo %></span>
-                    <span class="mono"><%= moneyUsd(it.anterior.preco_usd) %></span>
-                    <% if (it.trocouFornecedor && it.anterior.fornecedor) { %>
-                      <span class="stat-meta cell-clip" title="<%= it.anterior.fornecedor %>"><%= it.anterior.fornecedor %></span>
-                    <% } %>
-                  </div>
+                  <span class="mono"><%= moneyUsd(it.anterior.preco_usd) %></span>
                 <% } else { %>—<% } %>
               </td>
               <td class="num">
-                <% if (it.deltaPrecoPct == null) { %>
+                <% if (it.deltaPrecoUsd == null) { %>
                   —
-                <% } else if (it.aumentouPreco) { %>
-                  <span class="text-bad">+<%= numberBr(it.deltaPrecoPct, 1) %>%</span>
-                <% } else if (it.diminuiuPreco) { %>
-                  <span class="text-ok"><%= numberBr(it.deltaPrecoPct, 1) %>%</span>
                 <% } else { %>
-                  0%
-                <% } %>
-              </td>
-              <td class="num col-hide-sm">
-                <% if (it.deltaQtdPct == null) { %>
-                  —
-                <% } else if (it.aumentouQtd) { %>
-                  <span class="text-bad">+<%= numberBr(it.deltaQtdPct, 1) %>%</span>
-                <% } else if (it.diminuiuQtd) { %>
-                  <span class="text-ok"><%= numberBr(it.deltaQtdPct, 1) %>%</span>
-                <% } else { %>
-                  0%
+                  <div class="cell-stack" style="align-items:flex-end">
+                    <% if (it.aumentouPreco) { %>
+                      <span class="mono text-bad font-medium">+<%= moneyUsd(Math.abs(it.deltaPrecoUsd)) %></span>
+                      <span class="stat-meta text-bad">+<%= numberBr(it.deltaPrecoPct, 1) %>%</span>
+                    <% } else if (it.diminuiuPreco) { %>
+                      <span class="mono text-ok font-medium"><%= moneyUsd(it.deltaPrecoUsd) %></span>
+                      <span class="stat-meta text-ok"><%= numberBr(it.deltaPrecoPct, 1) %>%</span>
+                    <% } else { %>
+                      <span class="mono">$0.00</span>
+                      <span class="stat-meta">0%</span>
+                    <% } %>
+                  </div>
                 <% } %>
               </td>
               <td class="col-hide-sm">
-                <% if (it.melhorFornecedor) { %>
-                  <div class="cell-stack">
-                    <% if (melhorMesmo) { %>
-                      <span class="stat-meta">mesmo</span>
+                <div class="cell-stack">
+                  <span class="mono"><%= qtdA %> → <%= qtdB %></span>
+                  <% if (it.deltaQtdPct != null) { %>
+                    <% if (it.aumentouQtd) { %>
+                      <span class="stat-meta text-bad">+<%= numberBr(it.deltaQtdPct, 1) %>%</span>
+                    <% } else if (it.diminuiuQtd) { %>
+                      <span class="stat-meta text-ok"><%= numberBr(it.deltaQtdPct, 1) %>%</span>
                     <% } else { %>
-                      <span class="cell-clip" title="<%= it.melhorFornecedor.fornecedor %>"><%= it.melhorFornecedor.fornecedor %></span>
+                      <span class="stat-meta">0%</span>
                     <% } %>
-                    <span class="mono"><%= moneyUsd(it.melhorFornecedor.precoMedio) %></span>
+                  <% } %>
+                </div>
+              </td>
+              <td class="col-hide-sm">
+                <% if (it.ultima?.fornecedor) { %>
+                  <div class="cell-stack">
+                    <span class="cell-clip cell-clip-md" title="<%= it.ultima.fornecedor %>"><%= it.ultima.fornecedor %></span>
+                    <% if (it.trocouFornecedor && it.anterior?.fornecedor) { %>
+                      <span class="stat-meta cell-clip" title="<%= it.anterior.fornecedor %>">era: <%= it.anterior.fornecedor %></span>
+                    <% } %>
                   </div>
                 <% } else { %>—<% } %>
               </td>
@@ -247,7 +338,7 @@
                   <% if (it.aumentouPreco) { %><span class="badge badge-danger">alta</span><% } %>
                   <% if (it.diminuiuPreco) { %><span class="badge badge-ok">queda</span><% } %>
                   <% if (it.trocouFornecedor) { %><span class="badge badge-warn">troca</span><% } %>
-                  <% if (!it.aumentouPreco && !it.diminuiuPreco && !it.trocouFornecedor) { %>—<% } %>
+                  <% if (!it.aumentouPreco && !it.diminuiuPreco && !it.trocouFornecedor) { %><span class="stat-meta">estável</span><% } %>
                 </div>
               </td>
             </tr>
@@ -256,6 +347,102 @@
       </table>
     </div>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+  (function () {
+    if (!window.Chart) return;
+    var font = { family: 'IBM Plex Sans', size: 11 };
+    var aumentos = <%= Number(kpis.aumentos) || 0 %>;
+    var quedas = <%= Number(kpis.quedas) || 0 %>;
+    var estaveis = <%= Number(estaveis) || 0 %>;
+    var semHistorico = <%= Number(semHistorico) || 0 %>;
+
+    var ctxSit = document.getElementById('chartCmpSituacao');
+    if (ctxSit) {
+      var sitLabels = ['Alta', 'Queda', 'Estável'];
+      var sitData = [aumentos, quedas, estaveis];
+      var sitColors = ['#B42318', '#067647', '#94A3B8'];
+      if (semHistorico > 0) {
+        sitLabels.push('Sem hist.');
+        sitData.push(semHistorico);
+        sitColors.push('#CBD5E1');
+      }
+      new Chart(ctxSit, {
+        type: 'doughnut',
+        data: {
+          labels: sitLabels,
+          datasets: [{
+            data: sitData,
+            backgroundColor: sitColors,
+            borderWidth: 0,
+            hoverOffset: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '68%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { boxWidth: 10, font: font }
+            }
+          }
+        }
+      });
+    }
+
+    var topLabels = <%- JSON.stringify(chartTopLabels) %>;
+    var topValues = <%- JSON.stringify(chartTopValues) %>;
+    var topColors = <%- JSON.stringify(chartTopColors) %>;
+    var ctxTop = document.getElementById('chartCmpTop');
+    if (ctxTop && topLabels.length) {
+      new Chart(ctxTop, {
+        type: 'bar',
+        data: {
+          labels: topLabels,
+          datasets: [{
+            label: 'Δ preço %',
+            data: topValues,
+            backgroundColor: topColors,
+            borderRadius: 2,
+            maxBarThickness: 22
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function (ctx) {
+                  var v = ctx.parsed.x;
+                  return ' ' + (v > 0 ? '+' : '') + v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#ECEEF2' },
+              ticks: {
+                font: font,
+                callback: function (v) { return (v > 0 ? '+' : '') + v + '%'; }
+              }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { font: font }
+            }
+          }
+        }
+      });
+    }
+  })();
+  </script>
 <% } %>
 
 <script>
@@ -264,11 +451,16 @@
   if (!form) return;
   var radios = form.querySelectorAll('[data-modo-toggle]');
   var panels = form.querySelectorAll('[data-modo-panel]');
+  var tabs = form.querySelectorAll('.cmp-mode-tab');
   function sync() {
     var modo = 'automatico';
     radios.forEach(function (r) { if (r.checked) modo = r.value; });
     panels.forEach(function (p) {
       p.style.display = p.getAttribute('data-modo-panel') === modo ? '' : 'none';
+    });
+    tabs.forEach(function (tab) {
+      var input = tab.querySelector('input');
+      tab.classList.toggle('is-active', input && input.checked);
     });
   }
   radios.forEach(function (r) { r.addEventListener('change', sync); });

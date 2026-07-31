@@ -16,10 +16,24 @@ function validar(body) {
 
 async function listar(req, res, next) {
   try {
-    const produtos = await Produto.listar();
+    const q = String(req.query.q || '').trim();
+    const page = Number(req.query.page) || 1;
+    const pageSize = 15;
+
+    const [resultado, sugestoes] = await Promise.all([
+      Produto.listarPaginado({ q, page, pageSize }),
+      Produto.listarSugestoes(),
+    ]);
+
     res.render('produtos/index', {
       title: 'Produtos',
-      produtos,
+      produtos: resultado.rows,
+      q,
+      page: resultado.page,
+      pageSize: resultado.pageSize,
+      total: resultado.total,
+      totalPages: resultado.totalPages,
+      sugestoes,
     });
   } catch (err) {
     next(err);

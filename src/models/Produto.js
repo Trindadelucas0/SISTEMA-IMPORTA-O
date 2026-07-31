@@ -6,6 +6,50 @@ const Produto = {
     return rows;
   },
 
+  async listarSugestoes() {
+    const { rows } = await query(
+      'SELECT id, nome, codigo_interno FROM produtos ORDER BY nome ASC'
+    );
+    return rows;
+  },
+
+  async listarPaginado({ q = '', page = 1, pageSize = 15 } = {}) {
+    const termo = String(q || '').trim();
+    const size = Math.max(1, Math.min(100, Number(pageSize) || 15));
+    let pageNum = Math.max(1, Number(page) || 1);
+
+    const params = [];
+    let where = '';
+    if (termo) {
+      params.push(`%${termo}%`);
+      where = 'WHERE nome ILIKE $1 OR codigo_interno ILIKE $1';
+    }
+
+    const countSql = `SELECT COUNT(*)::int AS total FROM produtos ${where}`;
+    const { rows: countRows } = await query(countSql, params);
+    const total = countRows[0]?.total || 0;
+    const totalPages = Math.max(1, Math.ceil(total / size) || 1);
+    if (pageNum > totalPages) pageNum = totalPages;
+
+    const offset = (pageNum - 1) * size;
+    const limitParam = params.length + 1;
+    const offsetParam = params.length + 2;
+    const listSql = `
+      SELECT * FROM produtos
+      ${where}
+      ORDER BY nome ASC
+      LIMIT $${limitParam} OFFSET $${offsetParam}`;
+    const { rows } = await query(listSql, [...params, size, offset]);
+
+    return {
+      rows,
+      total,
+      page: pageNum,
+      pageSize: size,
+      totalPages,
+    };
+  },
+
   async listarAtivos() {
     const { rows } = await query(
       'SELECT * FROM produtos WHERE ativo = true ORDER BY nome ASC'
