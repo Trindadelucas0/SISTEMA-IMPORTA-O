@@ -144,27 +144,31 @@
         <%= itens.length %> item<%= itens.length === 1 ? '' : 's' %>
         <% if (parLabel) { %><span class="stat-meta" style="font-weight:400;margin-left:0.35rem"><%= parLabel %></span><% } %>
       </h2>
-      <p class="table-scroll-hint" style="margin:0;padding:0">Deslize para ver mais colunas</p>
+      <p class="cmp-scroll-hint">Deslize para ver mais colunas</p>
     </div>
-    <div class="table-panel table-compact" style="border:0;border-radius:0">
+    <div class="table-panel cmp-table" style="border:0;border-radius:0">
       <table>
         <thead>
           <tr>
-            <th>Referência</th>
+            <th class="col-sticky">Referência</th>
             <th><%= modoAtual === 'dois_pedidos' ? 'Pedido A' : (modoAtual === 'pedido_base' ? 'Pedido' : 'Último') %></th>
             <th>Fornecedor</th>
-            <th>Preço / Qtd</th>
+            <th class="num">Preço / Qtd</th>
             <th class="col-hide-sm"><%= modoAtual === 'dois_pedidos' ? 'Pedido B' : 'Anterior' %></th>
-            <th>Δ preço</th>
-            <th class="col-hide-sm">Δ qtd</th>
+            <th class="num">Δ preço</th>
+            <th class="num col-hide-sm">Δ qtd</th>
             <th class="col-hide-sm">Melhor forn.</th>
             <th>Alertas</th>
           </tr>
         </thead>
         <tbody>
-          <% itens.forEach(function(it) { %>
+          <% itens.forEach(function(it) {
+            const fornAtual = (it.ultima && it.ultima.fornecedor) ? String(it.ultima.fornecedor).trim() : '';
+            const fornMelhor = (it.melhorFornecedor && it.melhorFornecedor.fornecedor) ? String(it.melhorFornecedor.fornecedor).trim() : '';
+            const melhorMesmo = fornMelhor && fornAtual && fornMelhor.toLowerCase() === fornAtual.toLowerCase();
+          %>
             <tr>
-              <td>
+              <td class="col-sticky">
                 <div class="cell-stack">
                   <a class="link-action mono font-medium" href="/analises/comparativo/item/<%= encodeURIComponent(it.referencia) %>"><%= it.referencia %></a>
                   <% if (it.descricao) { %>
@@ -187,8 +191,8 @@
               </td>
               <td class="num">
                 <% if (it.ultima) { %>
-                  <div class="cell-stack">
-                    <span><%= moneyUsd(it.ultima.preco_usd) %></span>
+                  <div class="cell-stack" style="align-items:flex-end">
+                    <span class="mono font-medium"><%= moneyUsd(it.ultima.preco_usd) %></span>
                     <span class="stat-meta"><%= numberBr(it.ultima.quantidade, 0) %> un</span>
                   </div>
                 <% } else { %>—<% } %>
@@ -197,8 +201,10 @@
                 <% if (it.anterior) { %>
                   <div class="cell-stack">
                     <span class="mono"><%= it.anterior.pedido_codigo %></span>
-                    <span class="stat-meta cell-clip" title="<%= it.anterior.fornecedor || '' %>"><%= it.anterior.fornecedor || '—' %></span>
-                    <span class="stat-meta mono"><%= moneyUsd(it.anterior.preco_usd) %></span>
+                    <span class="mono"><%= moneyUsd(it.anterior.preco_usd) %></span>
+                    <% if (it.trocouFornecedor && it.anterior.fornecedor) { %>
+                      <span class="stat-meta cell-clip" title="<%= it.anterior.fornecedor %>"><%= it.anterior.fornecedor %></span>
+                    <% } %>
                   </div>
                 <% } else { %>—<% } %>
               </td>
@@ -227,13 +233,17 @@
               <td class="col-hide-sm">
                 <% if (it.melhorFornecedor) { %>
                   <div class="cell-stack">
-                    <span class="cell-clip" title="<%= it.melhorFornecedor.fornecedor %>"><%= it.melhorFornecedor.fornecedor %></span>
-                    <span class="stat-meta mono"><%= moneyUsd(it.melhorFornecedor.precoMedio) %></span>
+                    <% if (melhorMesmo) { %>
+                      <span class="stat-meta">mesmo</span>
+                    <% } else { %>
+                      <span class="cell-clip" title="<%= it.melhorFornecedor.fornecedor %>"><%= it.melhorFornecedor.fornecedor %></span>
+                    <% } %>
+                    <span class="mono"><%= moneyUsd(it.melhorFornecedor.precoMedio) %></span>
                   </div>
                 <% } else { %>—<% } %>
               </td>
               <td>
-                <div class="cell-stack">
+                <div class="badge-row">
                   <% if (it.aumentouPreco) { %><span class="badge badge-danger">alta</span><% } %>
                   <% if (it.diminuiuPreco) { %><span class="badge badge-ok">queda</span><% } %>
                   <% if (it.trocouFornecedor) { %><span class="badge badge-warn">troca</span><% } %>

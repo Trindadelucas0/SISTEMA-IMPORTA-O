@@ -410,6 +410,55 @@
       font-size: 0.78rem;
     }
 
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      align-items: center;
+    }
+    .table-panel.cmp-table {
+      font-size: 0.8125rem;
+    }
+    .table-panel.cmp-table table {
+      min-width: 1100px;
+      width: 100%;
+    }
+    .table-panel.cmp-table th,
+    .table-panel.cmp-table td {
+      padding: 0.5rem 0.7rem;
+      vertical-align: top;
+    }
+    .table-panel.cmp-table .num {
+      text-align: right;
+      white-space: nowrap;
+    }
+    .table-panel.cmp-table .cell-clip-md {
+      max-width: 16rem;
+    }
+    .table-panel.cmp-table .col-sticky {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: var(--surface);
+      box-shadow: 1px 0 0 var(--border-soft);
+      min-width: 9.5rem;
+      max-width: 14rem;
+    }
+    .table-panel.cmp-table thead .col-sticky {
+      background: var(--thead);
+      z-index: 3;
+    }
+    .table-panel.cmp-table tbody tr:hover .col-sticky {
+      background: #FAFBFC;
+    }
+    .cmp-scroll-hint {
+      display: block;
+      margin: 0;
+      padding: 0;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
     .badge {
       display: inline-flex;
       align-items: center;

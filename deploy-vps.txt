@@ -1,0 +1,118 @@
+================================================================================
+COMO SUBIR ATUALIZAÇÕES DO SISTEMA-IMPORTAÇÃO NA VPS
+App PM2: paulo
+Pasta:   ~/PROJETOS/SISTEMA-IMPORTA-O
+Porta:   3090 (definida no .env da VPS)
+================================================================================
+
+1) Conectar na VPS
+--------------------------------------------------------------------------------
+ssh lucasservidor
+
+
+2) Entrar na pasta do projeto
+--------------------------------------------------------------------------------
+cd ~/PROJETOS/SISTEMA-IMPORTA-O
+
+
+3) Ver se há mudanças locais que atrapalham o pull
+--------------------------------------------------------------------------------
+git status
+
+
+4) Se aparecer package-lock.json ou output.css modificado (comum após npm install),
+   descarta essas mudanças locais para o pull funcionar:
+--------------------------------------------------------------------------------
+git checkout -- package-lock.json public/css/output.css
+git status
+
+
+5) Baixar o código novo do GitHub
+--------------------------------------------------------------------------------
+git pull origin main
+
+
+6) Instalar dependências (só se o package.json mudou)
+--------------------------------------------------------------------------------
+npm install
+
+
+7) Rebuild do CSS (só se mexeram em CSS / Tailwind)
+--------------------------------------------------------------------------------
+npm run css
+
+
+8) Rodar migration SQL (SÓ se houver migration nova no pull)
+   Exemplo:
+--------------------------------------------------------------------------------
+# psql -U postgres -d NOME_DO_BANCO -f sql/migrate_xxx.sql
+
+
+9) Reiniciar o app no PM2 (OBRIGATÓRIO após git pull)
+   Sem isso o Node continua com o código antigo em memória.
+--------------------------------------------------------------------------------
+pm2 restart paulo
+
+
+10) Conferir se subiu
+--------------------------------------------------------------------------------
+pm2 status paulo
+pm2 logs paulo --lines 40 --nostream
+
+
+11) Testar no navegador
+--------------------------------------------------------------------------------
+Abrir a URL do sistema e validar a tela que mudou.
+Ex.: /analises/comparativo
+
+
+================================================================================
+ATALHO (atualização normal, sem migration)
+================================================================================
+ssh lucasservidor
+
+Depois, no servidor:
+
+cd ~/PROJETOS/SISTEMA-IMPORTA-O
+git checkout -- package-lock.json public/css/output.css
+git pull origin main
+npm install
+pm2 restart paulo
+pm2 logs paulo --lines 20 --nostream
+
+
+================================================================================
+PROBLEMAS COMUNS
+================================================================================
+
+A) git pull aborta por package-lock.json
+   Motivo: npm install na VPS alterou o lock.
+   Solução:
+     git checkout -- package-lock.json
+     git pull origin main
+
+B) Código já está atualizado no git, mas o erro continua
+   Motivo: PM2 não foi reiniciado.
+   Solução:
+     pm2 restart paulo
+
+C) Página em branco / erro 502
+   Conferir:
+     pm2 status paulo
+     pm2 logs paulo --err --lines 50 --nostream
+     grep PORT .env
+
+D) Pediu senha do GitHub no git pull
+   Prefira SSH no remoto, ou Personal Access Token.
+   Ver remoto atual:
+     git remote -v
+
+
+================================================================================
+NÃO FAZER
+================================================================================
+- Não commitar .env na VPS
+- Não apagar a pasta do projeto
+- Não rodar pm2 delete paulo (só restart)
+- Não misturar npm install com mudanças locais não commitadas sem antes
+  limpar package-lock.json / output.css
