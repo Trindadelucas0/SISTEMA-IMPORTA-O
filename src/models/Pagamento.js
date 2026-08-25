@@ -17,12 +17,27 @@ const Pagamento = {
        FROM pagamentos pg
        ORDER BY pg.data_pagamento ASC, pg.id ASC`
     );
-    return rows.map((row) => ({
-      ...row,
-      disponivel_usd: Number(row.valor_usd || 0) - Number(row.alocado_usd || 0),
-      disponivel_brl: Number(row.valor_brl || 0) - Number(row.alocado_brl || 0),
-    }));
+    return rows.map((row) => {
+      const valorUsd = Number(row.valor_usd || 0);
+      const valorBrl = Number(row.valor_brl || 0);
+      const dolarDia = Number(row.dolar_dia || 0);
+      const disponivelUsd = Math.max(0, valorUsd - Number(row.alocado_usd || 0));
+      const disponivelBrl =
+        disponivelUsd <= 0
+          ? 0
+          : dolarDia > 0
+            ? disponivelUsd * dolarDia
+            : valorUsd > 0
+              ? (disponivelUsd / valorUsd) * valorBrl
+              : 0;
+      return {
+        ...row,
+        disponivel_usd: disponivelUsd,
+        disponivel_brl: disponivelBrl,
+      };
+    });
   },
+
 
   async findById(id) {
     const { rows } = await query('SELECT * FROM pagamentos WHERE id = $1', [id]);

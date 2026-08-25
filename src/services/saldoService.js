@@ -12,32 +12,39 @@ async function invoiceUsdPedido(pedidoId) {
   return itens.reduce((acc, item) => acc + toNum(item.quantidade) * toNum(item.preco_usd), 0);
 }
 
+/**
+ * Pool: disponível BRL = conversão do USD ainda livre em cada pagamento
+ * (restante_usd * dolar_dia). Assim, se USD disponível = 0, BRL disponível = 0.
+ */
 async function resumoSaldo() {
-  const { rows: pagRows } = await query(
+  const { rows } = await query(
     `SELECT
-       COALESCE(SUM(valor_usd), 0) AS total_usd,
-       COALESCE(SUM(valor_brl), 0) AS total_brl
-     FROM pagamentos`
-  );
-  const { rows: alocRows } = await query(
-    `SELECT
-       COALESCE(SUM(valor_usd), 0) AS alocado_usd,
-       COALESCE(SUM(valor_brl), 0) AS alocado_brl
-     FROM alocacoes`
+       COALESCE(SUM(pg.valor_usd), 0) AS total_usd,
+       COALESCE(SUM(pg.valor_brl), 0) AS total_brl,
+       COALESCE(SUM(GREATEST(pg.valor_usd - COALESCE(a.alocado_usd, 0), 0)), 0) AS disponivel_usd,
+       COALESCE(SUM(
+         GREATEST(pg.valor_usd - COALESCE(a.alocado_usd, 0), 0) * pg.dolar_dia
+       ), 0) AS disponivel_brl
+     FROM pagamentos pg
+     LEFT JOIN (
+       SELECT pagamento_id, SUM(valor_usd) AS alocado_usd
+       FROM alocacoes
+       GROUP BY pagamento_id
+     ) a ON a.pagamento_id = pg.id`
   );
 
-  const totalUsd = toNum(pagRows[0].total_usd);
-  const totalBrl = toNum(pagRows[0].total_brl);
-  const alocadoUsd = toNum(alocRows[0].alocado_usd);
-  const alocadoBrl = toNum(alocRows[0].alocado_brl);
+  const totalUsd = toNum(rows[0].total_usd);
+  const totalBrl = toNum(rows[0].total_brl);
+  const disponivelUsd = toNum(rows[0].disponivel_usd);
+  const disponivelBrl = toNum(rows[0].disponivel_brl);
 
   return {
     total_usd: totalUsd,
     total_brl: totalBrl,
-    alocado_usd: alocadoUsd,
-    alocado_brl: alocadoBrl,
-    disponivel_usd: totalUsd - alocadoUsd,
-    disponivel_brl: totalBrl - alocadoBrl,
+    disponivel_usd: disponivelUsd,
+    disponivel_brl: disponivelBrl,
+    alocado_usd: totalUsd - disponivelUsd,
+    alocado_brl: totalBrl - disponivelBrl,
   };
 }
 
@@ -121,8 +128,15 @@ async function alocarManual({ pagamentoId, pedidoId, valorUsd }) {
   const aplicar = Math.min(valor, maxPedido);
   if (aplicar <= 0) throw new Error('Pedido já está coberto.');
 
+  // BRL da fatia = conversão do USD pelo dólar do pagamento (mesma base do disponível).
   const dolar = toNum(disp.dolar_dia);
-  const valorBrl = aplicar * dolar;
+  const pagUsd = toNum(disp.valor_usd);
+  const pagBrl = toNum(disp.valor_brl);
+  let valorBrl = aplicar * dolar;
+  if (pagUsd > 0 && pagBrl > 0) {
+    // Preferir rateio do BRL do pagamento para esgotar BRL junto com o USD.
+    valorBrl = (aplicar / pagUsd) * pagBrl;
+  }
 
   return Alocacao.criar({
     pagamento_id: pagamentoId,

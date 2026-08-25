@@ -73,10 +73,23 @@ const Alocacao = {
     );
     const row = rows[0];
     if (!row) return null;
+    const valorUsd = Number(row.valor_usd) || 0;
+    const valorBrl = Number(row.valor_brl) || 0;
+    const dolarDia = Number(row.dolar_dia) || 0;
+    const disponivelUsd = Math.max(0, valorUsd - (Number(row.alocado_usd) || 0));
+    // Disponível BRL = conversão do USD livre (não residual de arredondamento).
+    const disponivelBrl =
+      disponivelUsd <= 0
+        ? 0
+        : dolarDia > 0
+          ? disponivelUsd * dolarDia
+          : valorUsd > 0
+            ? (disponivelUsd / valorUsd) * valorBrl
+            : 0;
     return {
       ...row,
-      disponivel_usd: Number(row.valor_usd) - Number(row.alocado_usd),
-      disponivel_brl: Number(row.valor_brl) - Number(row.alocado_brl),
+      disponivel_usd: disponivelUsd,
+      disponivel_brl: disponivelBrl,
     };
   },
 };
