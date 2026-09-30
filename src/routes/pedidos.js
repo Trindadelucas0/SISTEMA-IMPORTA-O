@@ -9,6 +9,7 @@ router.get('/novo', pedidoController.formNovo);
 router.post('/', pedidoController.criar);
 router.get('/:id', pedidoController.detalhe);
 router.get('/:id/editar', pedidoController.formEditar);
+router.get('/:id/lista-fornecedor', pedidoController.listaFornecedor);
 router.put('/:id/status', requireAdmin, pedidoController.atualizarStatus);
 router.put('/:id', pedidoController.atualizar);
 router.delete('/:id', pedidoController.remover);

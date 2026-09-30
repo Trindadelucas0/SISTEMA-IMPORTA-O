@@ -33,6 +33,32 @@
     });
   }
 
+  var TITULO_TRAVA = 'Pedido quitado: quantidade e preço travados';
+
+  /** Mesma regra de casasDecimais em show.ejs: não arredondar o valor gravado no input. */
+  function casasDecimais(value, minimo) {
+    var n = Number(value) || 0;
+    for (var d = minimo; d < 4; d++) {
+      var f = Math.pow(10, d);
+      if (Math.abs(Math.round(n * f) / f - n) < 1e-9) return d;
+    }
+    return 4;
+  }
+
+  function inputBr(value, minimo) {
+    return numberBr(value, casasDecimais(value, minimo));
+  }
+
+  function aplicarTrava(coberto) {
+    painel.setAttribute('data-coberto', coberto ? '1' : '0');
+    var campos = painel.querySelectorAll('input[name="quantidade"], input[name="preco_usd"]');
+    campos.forEach(function (el) {
+      el.readOnly = coberto;
+      if (coberto) el.title = TITULO_TRAVA;
+      else el.removeAttribute('title');
+    });
+  }
+
   function setStatus(msg, isError) {
     if (!statusEl) return;
     if (!msg) {
@@ -99,6 +125,7 @@
       );
     }
     if (alertaSaldo) alertaSaldo.hidden = Boolean(saldo.coberto);
+    aplicarTrava(Boolean(saldo.coberto));
   }
 
   function atualizarBadge(qtd) {
@@ -132,50 +159,58 @@
     else if (ref) ref.focus();
   }
 
+  function campoLinha(opts) {
+    var input = document.createElement('input');
+    input.className = opts.className;
+    input.name = opts.name;
+    input.setAttribute('form', opts.formId);
+    input.setAttribute('aria-label', opts.label);
+    input.setAttribute('value', opts.value);
+    if (opts.inputmode) input.setAttribute('inputmode', opts.inputmode);
+    if (opts.required) input.required = true;
+    return input;
+  }
+
+  function celula(className, child) {
+    var td = document.createElement('td');
+    if (className) td.className = className;
+    if (child) td.appendChild(child);
+    return td;
+  }
+
+  function linkComparativo(referencia) {
+    return '/analises/comparativo/item/' + encodeURIComponent(referencia);
+  }
+
   function montarLinha(item) {
+    var formId = 'form-item-' + item.id;
     var tr = document.createElement('tr');
-    tr.className = 'align-top';
+    tr.className = 'item-edit';
     tr.setAttribute('data-item-id', String(item.id));
 
-    var tdRef = document.createElement('td');
-    tdRef.className = 'font-medium mono';
-    var aRef = document.createElement('a');
-    aRef.className = 'link-action';
-    aRef.href = '/analises/comparativo/item/' + encodeURIComponent(item.referencia);
-    aRef.title = 'Ver análise vs última compra';
-    aRef.textContent = item.referencia;
-    tdRef.appendChild(aRef);
-
-    var tdDesc = document.createElement('td');
-    tdDesc.className = 'max-w-xs whitespace-normal text-xs col-hide-sm';
-    tdDesc.style.color = 'var(--muted)';
-    tdDesc.textContent = item.descricao || '—';
-
-    var tdQtd = document.createElement('td');
-    tdQtd.className = 'num';
-    tdQtd.textContent = numberBr(item.quantidade, 0);
-
-    var tdPreco = document.createElement('td');
-    tdPreco.className = 'num';
-    tdPreco.textContent = numberBr(item.preco_usd, 2);
-
-    var tdAmount = document.createElement('td');
-    tdAmount.className = 'num font-semibold';
+    var tdAmount = celula('num font-semibold');
+    tdAmount.setAttribute('data-amount', '');
     tdAmount.textContent = moneyUsd(item.amount_usd);
 
-    var tdNcm = document.createElement('td');
-    tdNcm.className = 'mono col-hide-sm';
-    tdNcm.textContent = item.ncm || '—';
+    var formEditar = document.createElement('form');
+    formEditar.id = formId;
+    formEditar.className = 'form-editar-item';
+    formEditar.method = 'POST';
+    formEditar.action = '/pedidos/' + pedidoId + '/itens/' + item.id + '?_method=PUT';
+    var btnSalvar = document.createElement('button');
+    btnSalvar.type = 'submit';
+    btnSalvar.className = 'btn btn-primary btn-sm';
+    btnSalvar.textContent = 'Salvar';
+    formEditar.appendChild(btnSalvar);
 
-    var tdAcoes = document.createElement('td');
-    tdAcoes.className = 'text-right space-x-2';
     var aCmp = document.createElement('a');
     aCmp.className = 'link-action';
-    aCmp.href = '/analises/comparativo/item/' + encodeURIComponent(item.referencia);
+    aCmp.href = linkComparativo(item.referencia);
+    aCmp.title = 'Ver análise vs última compra';
     aCmp.textContent = 'vs última';
 
     var formRemover = document.createElement('form');
-    formRemover.className = 'inline form-remover-item';
+    formRemover.className = 'form-remover-item';
     formRemover.method = 'POST';
     formRemover.action = '/pedidos/' + pedidoId + '/itens/' + item.id + '?_method=DELETE';
     var btnRemover = document.createElement('button');
@@ -184,17 +219,67 @@
     btnRemover.textContent = 'Remover';
     formRemover.appendChild(btnRemover);
 
-    tdAcoes.appendChild(aCmp);
-    tdAcoes.appendChild(formRemover);
+    var acoes = document.createElement('div');
+    acoes.className = 'item-acoes';
+    acoes.appendChild(formEditar);
+    acoes.appendChild(aCmp);
+    acoes.appendChild(formRemover);
 
-    tr.appendChild(tdRef);
-    tr.appendChild(tdDesc);
-    tr.appendChild(tdQtd);
-    tr.appendChild(tdPreco);
+    tr.appendChild(celula('', campoLinha({
+      className: 'field mono', name: 'referencia', formId: formId,
+      label: 'REF', value: item.referencia || '', required: true,
+    })));
+    tr.appendChild(celula('col-hide-sm', campoLinha({
+      className: 'field field-desc', name: 'descricao', formId: formId,
+      label: 'Descrição', value: item.descricao || '',
+    })));
+    tr.appendChild(celula('', campoLinha({
+      className: 'field field-num', name: 'quantidade', formId: formId,
+      label: 'Quantidade', value: inputBr(item.quantidade, 0), inputmode: 'decimal',
+    })));
+    tr.appendChild(celula('', campoLinha({
+      className: 'field field-num', name: 'preco_usd', formId: formId,
+      label: 'Unit USD', value: inputBr(item.preco_usd, 2), inputmode: 'decimal',
+    })));
     tr.appendChild(tdAmount);
-    tr.appendChild(tdNcm);
-    tr.appendChild(tdAcoes);
+    tr.appendChild(celula('col-hide-sm', campoLinha({
+      className: 'field mono', name: 'ncm', formId: formId,
+      label: 'NCM', value: item.ncm || '', inputmode: 'numeric',
+    })));
+    tr.appendChild(celula('', acoes));
     return tr;
+  }
+
+  function camposDoForm(formEl) {
+    return document.querySelectorAll('[form="' + formEl.id + '"]');
+  }
+
+  /** Após salvar, o valor gravado vira o novo "original" (usado para desfazer no 409). */
+  function fixarValores(formEl, item) {
+    var tr = formEl.closest('tr');
+    var valores = {
+      referencia: item.referencia || '',
+      descricao: item.descricao || '',
+      quantidade: inputBr(item.quantidade, 0),
+      preco_usd: inputBr(item.preco_usd, 2),
+      ncm: item.ncm || '',
+    };
+    camposDoForm(formEl).forEach(function (el) {
+      if (!(el.name in valores)) return;
+      el.value = valores[el.name];
+      el.defaultValue = valores[el.name];
+    });
+    if (!tr) return;
+    var amount = tr.querySelector('[data-amount]');
+    if (amount) amount.textContent = moneyUsd(item.amount_usd);
+    var aCmp = tr.querySelector('a.link-action');
+    if (aCmp) aCmp.href = linkComparativo(item.referencia);
+  }
+
+  function desfazerValores(formEl, nomes) {
+    camposDoForm(formEl).forEach(function (el) {
+      if (nomes.indexOf(el.name) !== -1) el.value = el.defaultValue;
+    });
   }
 
   async function parseJsonRes(res) {
@@ -206,7 +291,10 @@
     }
     if (!res.ok || !data || data.ok === false) {
       var msg = (data && data.erro) || 'Não foi possível concluir a operação.';
-      throw new Error(msg);
+      var err = new Error(msg);
+      err.status = res.status;
+      err.codigo = data && data.codigo;
+      throw err;
     }
     return data;
   }
@@ -258,6 +346,54 @@
       if (btnAdd) {
         btnAdd.disabled = false;
         btnAdd.textContent = 'Adicionar item';
+      }
+    }
+  });
+
+  painel.addEventListener('submit', async function (ev) {
+    var editForm = ev.target.closest('.form-editar-item');
+    if (!editForm || !painel.contains(editForm)) return;
+    ev.preventDefault();
+    if (submitting) return;
+
+    var refEl = document.querySelector('[form="' + editForm.id + '"][name="referencia"]');
+    if (refEl && !refEl.value.trim()) {
+      setStatus('Informe a REF do item.', true);
+      refEl.focus();
+      return;
+    }
+
+    var btn = editForm.querySelector('button[type="submit"]');
+    submitting = true;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Salvando…';
+    }
+    setStatus('');
+
+    try {
+      var res = await fetch(editForm.action, {
+        method: 'POST',
+        body: formBody(editForm),
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin',
+      });
+      var data = await parseJsonRes(res);
+      if (data.item) fixarValores(editForm, data.item);
+      atualizarBadge(data.qtdItens);
+      atualizarSaldo(data.saldo);
+      setStatus('Item atualizado.', false);
+    } catch (err) {
+      if (err.codigo === 'ITEM_COBERTO') {
+        desfazerValores(editForm, ['quantidade', 'preco_usd']);
+        aplicarTrava(true);
+      }
+      setStatus(err.message || 'Erro ao salvar item.', true);
+    } finally {
+      submitting = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Salvar';
       }
     }
   });

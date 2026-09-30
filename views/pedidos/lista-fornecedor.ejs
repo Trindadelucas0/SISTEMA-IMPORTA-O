@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> · Importação</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@450;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/relatorio-print.css">
+  <style>
+    .lista-fornecedor .relatorio-doc { max-width: 60rem; }
+    .lista-fornecedor .relatorio-table { font-size: 12px; }
+    .lista-fornecedor .relatorio-table td.col-desc { white-space: normal; }
+    .lista-fornecedor .relatorio-table .col-idx { width: 2.5rem; color: var(--muted); }
+    @media print {
+      @page { size: A4 portrait; margin: 12mm 10mm; }
+      .lista-fornecedor .relatorio-table { font-size: 9pt; }
+    }
+  </style>
+</head>
+<body class="relatorio-page lista-fornecedor">
+<%
+  const geradoLabel = geradoEm.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const statusLabel = typeof statusPedidoLabel === 'function'
+    ? statusPedidoLabel(pedido.status)
+    : pedido.status;
+  function qtdLabel(valor) {
+    const n = Number(valor) || 0;
+    return numberBr(n, Number.isInteger(n) ? 0 : 2);
+  }
+%>
+
+  <div class="relatorio-toolbar no-print">
+    <div class="relatorio-toolbar-inner">
+      <a href="/pedidos/<%= pedido.id %>" class="rel-btn rel-btn-ghost">← Voltar ao pedido</a>
+      <div class="relatorio-toolbar-actions">
+        <button type="button" class="rel-btn rel-btn-ghost" onclick="window.print()">Imprimir</button>
+        <button type="button" class="rel-btn rel-btn-primary" onclick="window.print()">Salvar PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="relatorio-doc">
+    <header class="relatorio-masthead">
+      <div class="relatorio-brand">
+        <span class="relatorio-mark" aria-hidden="true">IM</span>
+        <div>
+          <p class="relatorio-brand-name">Importação</p>
+          <p class="relatorio-doc-type">Lista para fornecedor</p>
+        </div>
+      </div>
+      <div class="relatorio-doc-meta">
+        <p class="relatorio-doc-id mono"><%= pedido.codigo %></p>
+        <p class="relatorio-doc-date">Gerado em <%= geradoLabel %></p>
+      </div>
+    </header>
+
+    <section class="relatorio-identity" aria-label="Identificação do pedido">
+      <div>
+        <p class="rel-label">Fornecedor</p>
+        <p class="rel-value"><%= pedido.fornecedor || '—' %></p>
+      </div>
+      <div>
+        <p class="rel-label">Status</p>
+        <p class="rel-value"><%= statusLabel %></p>
+      </div>
+      <div>
+        <p class="rel-label">Início da fabricação</p>
+        <p class="rel-value mono"><%= formatDateBr(pedido.data_inicio_fabricacao) %></p>
+      </div>
+      <div>
+        <p class="rel-label">Prevista de chegada</p>
+        <p class="rel-value mono"><%= formatDateBr(pedido.data_prevista_chegada) %></p>
+      </div>
+    </section>
+
+    <section class="relatorio-section">
+      <h2 class="relatorio-section-title">Itens do pedido</h2>
+
+      <% if (!itens.length) { %>
+        <p class="relatorio-empty">Este pedido ainda não tem itens.</p>
+      <% } else { %>
+        <table class="relatorio-table relatorio-table-compact">
+          <thead>
+            <tr>
+              <th class="col-idx num">#</th>
+              <th>REF</th>
+              <th>Descrição</th>
+              <th class="num">Quantidade</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% itens.forEach(function(item, idx) { %>
+              <tr>
+                <td class="col-idx num mono"><%= idx + 1 %></td>
+                <td class="mono"><%= item.referencia %></td>
+                <td class="col-desc"><%= item.descricao || '—' %></td>
+                <td class="num mono"><%= qtdLabel(item.quantidade) %></td>
+              </tr>
+            <% }) %>
+            <tr class="relatorio-total">
+              <td></td>
+              <td colspan="2">Total de peças (<%= itens.length %> item(ns))</td>
+              <td class="num mono"><%= qtdLabel(totalPecas) %></td>
+            </tr>
+          </tbody>
+        </table>
+      <% } %>
+    </section>
+
+    <footer class="relatorio-footer">
+      <p>
+        Lista para fornecedor · Importação · Pedido
+        <span class="mono"><%= pedido.codigo %></span>
+        · <%= geradoLabel %>
+      </p>
+      <p class="relatorio-footer-note">Documento sem valores comerciais. Destinado ao fornecedor.</p>
+    </footer>
+  </main>
+
+  <% if (autoPrint) { %>
+  <script>
+    window.addEventListener('load', function () {
+      setTimeout(function () { window.print(); }, 250);
+    });
+  </script>
+  <% } %>
+</body>
+</html>

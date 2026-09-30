@@ -875,13 +875,14 @@
       gap: 0.65rem;
       grid-template-columns: 1fr;
     }
+    .pedido-layout > * { min-width: 0; }
     @media (min-width: 720px) {
       .dash-grid-3 { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
     }
     @media (min-width: 960px) {
       .dash-grid { grid-template-columns: 1.1fr 0.9fr; gap: 0.75rem; }
       .dash-grid-3 { grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
-      .pedido-layout { grid-template-columns: 1.4fr 0.85fr; gap: 0.75rem; }
+      .pedido-layout { grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.85fr); gap: 0.75rem; }
     }
     .bar-row {
       display: grid;
@@ -1217,6 +1218,20 @@
       text-align: right;
       font-family: "IBM Plex Mono", ui-monospace, monospace;
       font-variant-numeric: tabular-nums;
+    }
+    .item-edit td { vertical-align: middle; }
+    .item-edit .field {
+      padding: 0.3rem 0.45rem;
+      font-size: 0.8125rem;
+      min-width: 5.5rem;
+    }
+    .item-edit .field-desc { min-width: 11rem; }
+    .item-edit .item-acoes {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.6rem;
+      white-space: nowrap;
     }
     .label {
       display: block;

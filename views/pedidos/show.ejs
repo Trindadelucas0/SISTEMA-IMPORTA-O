@@ -8,6 +8,15 @@
     ? Math.min(100, Math.round((alocado / invoice) * 1000) / 10)
     : (saldo.coberto ? 100 : 0);
   const badgeClass = saldo.coberto ? 'badge-ok' : (alocado > 0 ? 'badge-warn' : 'badge-danger');
+  const tituloTrava = 'Pedido quitado: quantidade e preço travados';
+  function casasDecimais(valor, minimo) {
+    const n = Number(valor) || 0;
+    for (let d = minimo; d < 4; d++) {
+      const f = Math.pow(10, d);
+      if (Math.abs(Math.round(n * f) / f - n) < 1e-9) return d;
+    }
+    return 4;
+  }
 %>
 
 <section class="page-header mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -31,6 +40,7 @@
     <a href="/saldo" class="btn btn-ghost btn-sm">Saldo</a>
     <a href="/pagamentos/novo" class="btn btn-ghost btn-sm">Pagamento</a>
     <a href="/desembaraco/<%= pedido.id %>/relatorio" class="btn btn-ghost btn-sm" target="_blank" rel="noopener">Relatório custo</a>
+    <a href="/pedidos/<%= pedido.id %>/lista-fornecedor" class="btn btn-ghost btn-sm" target="_blank" rel="noopener" title="Lista sem valores para enviar ao fornecedor">PDF fornecedor</a>
     <a href="/desembaraco/<%= pedido.id %>" class="btn btn-primary btn-sm">Compras</a>
     <form method="POST" action="/pedidos/<%= pedido.id %>?_method=DELETE" onsubmit="return confirm('Excluir pedido e itens?')">
       <button type="submit" class="btn btn-danger btn-sm">Excluir</button>
@@ -43,6 +53,12 @@
 <% } %>
 <% if (typeof statusErro !== 'undefined' && statusErro) { %>
   <p class="alert alert-error" role="alert">Status inválido. Escolha Aberta, Em Trânsito, Embarcada ou Finalizada.</p>
+<% } %>
+<% if (typeof itemErro !== 'undefined' && itemErro === 'item') { %>
+  <p class="alert alert-error" role="alert">Informe a REF do item.</p>
+<% } %>
+<% if (typeof itemErro !== 'undefined' && itemErro === 'item_coberto') { %>
+  <p class="alert alert-error" role="alert">Pedido quitado: quantidade e preço não podem mudar.</p>
 <% } %>
 
 <section class="coverage-block mb-4" id="cobertura-block">
@@ -132,7 +148,7 @@
 <% } %>
 
 <section class="pedido-layout mb-4">
-  <div class="panel" id="painel-itens" data-pedido-id="<%= pedido.id %>">
+  <div class="panel" id="painel-itens" data-pedido-id="<%= pedido.id %>" data-coberto="<%= saldo.coberto ? '1' : '0' %>">
     <div class="panel-head">
       <h2>Itens do invoice</h2>
       <span class="badge" id="itens-badge"><%= itens.length %> item(ns)</span>
@@ -157,20 +173,34 @@
           </thead>
           <tbody id="itens-tbody">
             <% itens.forEach(function(item) { %>
-              <tr class="align-top" data-item-id="<%= item.id %>">
-                <td class="font-medium mono">
-                  <a class="link-action" href="/analises/comparativo/item/<%= encodeURIComponent(item.referencia) %>" title="Ver análise vs última compra"><%= item.referencia %></a>
+              <% const formId = 'form-item-' + item.id; %>
+              <tr class="item-edit" data-item-id="<%= item.id %>">
+                <td>
+                  <input class="field mono" name="referencia" form="<%= formId %>" required value="<%= item.referencia %>" aria-label="REF" autocomplete="off">
                 </td>
-                <td class="max-w-xs whitespace-normal text-xs col-hide-sm" style="color:var(--muted)"><%= item.descricao || '—' %></td>
-                <td class="num"><%= numberBr(item.quantidade, 0) %></td>
-                <td class="num"><%= numberBr(item.preco_usd, 2) %></td>
-                <td class="num font-semibold"><%= moneyUsd(item.amount_usd) %></td>
-                <td class="mono col-hide-sm"><%= item.ncm || '—' %></td>
-                <td class="text-right space-x-2">
-                  <a class="link-action" href="/analises/comparativo/item/<%= encodeURIComponent(item.referencia) %>">vs última</a>
-                  <form class="inline form-remover-item" method="POST" action="/pedidos/<%= pedido.id %>/itens/<%= item.id %>?_method=DELETE">
-                    <button type="submit" class="link-danger">Remover</button>
-                  </form>
+                <td class="col-hide-sm">
+                  <input class="field field-desc" name="descricao" form="<%= formId %>" value="<%= item.descricao || '' %>" aria-label="Descrição">
+                </td>
+                <td>
+                  <input class="field field-num" name="quantidade" form="<%= formId %>" inputmode="decimal" value="<%= formatInputBr(Number(item.quantidade), casasDecimais(item.quantidade, 0)) %>" aria-label="Quantidade" <%- saldo.coberto ? 'readonly title="' + tituloTrava + '"' : '' %>>
+                </td>
+                <td>
+                  <input class="field field-num" name="preco_usd" form="<%= formId %>" inputmode="decimal" value="<%= formatInputBr(Number(item.preco_usd), casasDecimais(item.preco_usd, 2)) %>" aria-label="Unit USD" <%- saldo.coberto ? 'readonly title="' + tituloTrava + '"' : '' %>>
+                </td>
+                <td class="num font-semibold" data-amount><%= moneyUsd(item.amount_usd) %></td>
+                <td class="col-hide-sm">
+                  <input class="field mono" name="ncm" form="<%= formId %>" inputmode="numeric" value="<%= item.ncm || '' %>" aria-label="NCM">
+                </td>
+                <td>
+                  <div class="item-acoes">
+                    <form id="<%= formId %>" class="form-editar-item" method="POST" action="/pedidos/<%= pedido.id %>/itens/<%= item.id %>?_method=PUT">
+                      <button type="submit" class="btn btn-primary btn-sm">Salvar</button>
+                    </form>
+                    <a class="link-action" href="/analises/comparativo/item/<%= encodeURIComponent(item.referencia) %>" title="Ver análise vs última compra">vs última</a>
+                    <form class="form-remover-item" method="POST" action="/pedidos/<%= pedido.id %>/itens/<%= item.id %>?_method=DELETE">
+                      <button type="submit" class="link-danger">Remover</button>
+                    </form>
+                  </div>
                 </td>
               </tr>
             <% }) %>

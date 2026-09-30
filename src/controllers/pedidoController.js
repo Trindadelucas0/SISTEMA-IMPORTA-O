@@ -261,6 +261,7 @@ async function detalhe(req, res, next) {
       statusList: STATUS,
       statusOk: req.query.ok === 'status',
       statusErro: req.query.erro === 'status',
+      itemErro: req.query.erro === 'item' || req.query.erro === 'item_coberto' ? req.query.erro : null,
     });
   } catch (err) {
     next(err);
@@ -452,10 +453,18 @@ async function adicionarItem(req, res, next) {
   }
 }
 
+function numeroMudou(atual, novo) {
+  return Math.abs((Number(atual) || 0) - (Number(novo) || 0)) > 1e-9;
+}
+
 async function atualizarItem(req, res, next) {
   try {
+    const json = wantsJson(req);
     const item = await ItemPedido.findById(req.params.itemId);
-    if (!item) {
+    if (!item || Number(item.pedido_id) !== Number(req.params.id)) {
+      if (json) {
+        return res.status(404).json({ ok: false, erro: 'Item não encontrado neste pedido.' });
+      }
       return res.status(404).render('errors/404', {
         title: 'Item não encontrado',
         message: 'Esse item não existe mais neste pedido.',
@@ -463,21 +472,86 @@ async function atualizarItem(req, res, next) {
       });
     }
 
-    await ItemPedido.atualizar(item.id, {
-      referencia: String(req.body.referencia || '').trim(),
-      descricao: req.body.descricao,
-      quantidade: parseNumber(req.body.quantidade),
-      preco_usd: parseNumber(req.body.preco_usd),
-      ncm: req.body.ncm,
-      aliq_ii: parseNumber(req.body.aliq_ii),
-      aliq_ipi: parseNumber(req.body.aliq_ipi),
-      aliq_pis: parseNumber(req.body.aliq_pis),
-      aliq_cofins: parseNumber(req.body.aliq_cofins),
-      aliq_icms: parseNumber(req.body.aliq_icms),
-      ordem: parseNumber(req.body.ordem),
+    const body = req.body || {};
+    const referencia = String(body.referencia || '').trim();
+    if (!referencia) {
+      if (json) {
+        return res.status(400).json({ ok: false, erro: 'Informe a REF do item.' });
+      }
+      return res.redirect(`/pedidos/${item.pedido_id}?erro=item`);
+    }
+
+    const quantidade = parseNumber(body.quantidade);
+    const preco_usd = parseNumber(body.preco_usd);
+
+    const saldo = await saldoService.saldoPedido(item.pedido_id);
+    const mudouValor =
+      numeroMudou(item.quantidade, quantidade) || numeroMudou(item.preco_usd, preco_usd);
+    if (saldo.coberto && mudouValor) {
+      const erro = 'Pedido quitado: quantidade e preço não podem mudar.';
+      if (json) {
+        return res.status(409).json({ ok: false, erro, codigo: 'ITEM_COBERTO' });
+      }
+      return res.redirect(`/pedidos/${item.pedido_id}?erro=item_coberto`);
+    }
+
+    const atualizado = await ItemPedido.atualizar(item.id, {
+      referencia,
+      descricao: body.descricao,
+      quantidade,
+      preco_usd,
+      ncm: body.ncm,
+      aliq_ii: item.aliq_ii,
+      aliq_ipi: item.aliq_ipi,
+      aliq_pis: item.aliq_pis,
+      aliq_cofins: item.aliq_cofins,
+      aliq_icms: item.aliq_icms,
+      ordem: item.ordem,
     });
 
+    if (json) {
+      return respostaItensJson(res, item.pedido_id, atualizado);
+    }
     res.redirect(`/pedidos/${item.pedido_id}`);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function listaFornecedor(req, res, next) {
+  try {
+    const pedido = await Pedido.findById(req.params.id);
+    if (!pedido) {
+      return res.status(404).render('errors/404', {
+        title: 'Pedido não encontrado',
+        message: 'Não há pedido com esse ID. Abra a lista de pedidos e escolha um existente.',
+        pathTried: req.originalUrl,
+      });
+    }
+
+    const itens = await ItemPedido.findByPedido(pedido.id);
+    const linhas = itens.map((item) => ({
+      referencia: item.referencia,
+      descricao: item.descricao || null,
+      quantidade: Number(item.quantidade) || 0,
+    }));
+    const totalPecas = linhas.reduce((acc, l) => acc + l.quantidade, 0);
+
+    res.render('pedidos/lista-fornecedor', {
+      title: `Lista para fornecedor ${pedido.codigo}`,
+      pedido: {
+        id: pedido.id,
+        codigo: pedido.codigo,
+        status: pedido.status,
+        fornecedor: pedido.fornecedor_nome || pedido.fornecedor,
+        data_inicio_fabricacao: pedido.data_inicio_fabricacao,
+        data_prevista_chegada: pedido.data_prevista_chegada,
+      },
+      itens: linhas,
+      totalPecas,
+      autoPrint: req.query.autoPrint === '1',
+      geradoEm: new Date(),
+    });
   } catch (err) {
     next(err);
   }
@@ -520,4 +594,5 @@ module.exports = {
   adicionarItem,
   atualizarItem,
   removerItem,
+  listaFornecedor,
 };
