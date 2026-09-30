@@ -168,7 +168,20 @@
     input.setAttribute('value', opts.value);
     if (opts.inputmode) input.setAttribute('inputmode', opts.inputmode);
     if (opts.required) input.required = true;
+    input.hidden = true;
     return input;
+  }
+
+  function textoValor(valor) {
+    return valor === '' || valor == null ? '—' : String(valor);
+  }
+
+  function valorLinha(opts) {
+    var span = document.createElement('span');
+    span.className = 'item-valor' + (opts.mono ? ' mono' : '');
+    span.setAttribute('data-campo', opts.name);
+    span.textContent = textoValor(opts.value);
+    return span;
   }
 
   function celula(className, child) {
@@ -176,6 +189,34 @@
     if (className) td.className = className;
     if (child) td.appendChild(child);
     return td;
+  }
+
+  function celulaCampo(className, opts) {
+    var td = celula(className);
+    td.appendChild(valorLinha(opts));
+    td.appendChild(campoLinha(opts));
+    return td;
+  }
+
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+
+  function iconeLapis() {
+    var svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('width', '16');
+    svg.setAttribute('height', '16');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    svg.setAttribute('aria-hidden', 'true');
+    ['M12 20h9', 'M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z'].forEach(function (d) {
+      var path = document.createElementNS(SVG_NS, 'path');
+      path.setAttribute('d', d);
+      svg.appendChild(path);
+    });
+    return svg;
   }
 
   function linkComparativo(referencia) {
@@ -192,16 +233,29 @@
     tdAmount.setAttribute('data-amount', '');
     tdAmount.textContent = moneyUsd(item.amount_usd);
 
+    var btnEditar = document.createElement('button');
+    btnEditar.type = 'button';
+    btnEditar.className = 'btn-editar-item';
+    btnEditar.setAttribute('aria-label', 'Editar item');
+    btnEditar.title = 'Editar item';
+    btnEditar.appendChild(iconeLapis());
+
     var formEditar = document.createElement('form');
     formEditar.id = formId;
     formEditar.className = 'form-editar-item';
     formEditar.method = 'POST';
     formEditar.action = '/pedidos/' + pedidoId + '/itens/' + item.id + '?_method=PUT';
+    formEditar.hidden = true;
     var btnSalvar = document.createElement('button');
     btnSalvar.type = 'submit';
     btnSalvar.className = 'btn btn-primary btn-sm';
     btnSalvar.textContent = 'Salvar';
+    var btnCancelar = document.createElement('button');
+    btnCancelar.type = 'button';
+    btnCancelar.className = 'btn btn-ghost btn-sm btn-cancelar-item';
+    btnCancelar.textContent = 'Cancelar';
     formEditar.appendChild(btnSalvar);
+    formEditar.appendChild(btnCancelar);
 
     var aCmp = document.createElement('a');
     aCmp.className = 'link-action';
@@ -221,31 +275,32 @@
 
     var acoes = document.createElement('div');
     acoes.className = 'item-acoes';
+    acoes.appendChild(btnEditar);
     acoes.appendChild(formEditar);
     acoes.appendChild(aCmp);
     acoes.appendChild(formRemover);
 
-    tr.appendChild(celula('', campoLinha({
-      className: 'field mono', name: 'referencia', formId: formId,
-      label: 'REF', value: item.referencia || '', required: true,
-    })));
-    tr.appendChild(celula('col-hide-sm', campoLinha({
-      className: 'field field-desc', name: 'descricao', formId: formId,
+    tr.appendChild(celulaCampo('', {
+      className: 'field mono item-campo', name: 'referencia', formId: formId,
+      label: 'REF', value: item.referencia || '', required: true, mono: true,
+    }));
+    tr.appendChild(celulaCampo('col-hide-sm', {
+      className: 'field field-desc item-campo', name: 'descricao', formId: formId,
       label: 'Descrição', value: item.descricao || '',
-    })));
-    tr.appendChild(celula('', campoLinha({
-      className: 'field field-num', name: 'quantidade', formId: formId,
+    }));
+    tr.appendChild(celulaCampo('num', {
+      className: 'field field-num item-campo', name: 'quantidade', formId: formId,
       label: 'Quantidade', value: inputBr(item.quantidade, 0), inputmode: 'decimal',
-    })));
-    tr.appendChild(celula('', campoLinha({
-      className: 'field field-num', name: 'preco_usd', formId: formId,
+    }));
+    tr.appendChild(celulaCampo('num', {
+      className: 'field field-num item-campo', name: 'preco_usd', formId: formId,
       label: 'Unit USD', value: inputBr(item.preco_usd, 2), inputmode: 'decimal',
-    })));
+    }));
     tr.appendChild(tdAmount);
-    tr.appendChild(celula('col-hide-sm', campoLinha({
-      className: 'field mono', name: 'ncm', formId: formId,
-      label: 'NCM', value: item.ncm || '', inputmode: 'numeric',
-    })));
+    tr.appendChild(celulaCampo('col-hide-sm', {
+      className: 'field mono item-campo', name: 'ncm', formId: formId,
+      label: 'NCM', value: item.ncm || '', inputmode: 'numeric', mono: true,
+    }));
     tr.appendChild(celula('', acoes));
     return tr;
   }
@@ -270,6 +325,10 @@
       el.defaultValue = valores[el.name];
     });
     if (!tr) return;
+    tr.querySelectorAll('.item-valor').forEach(function (span) {
+      var campo = span.getAttribute('data-campo');
+      if (campo in valores) span.textContent = textoValor(valores[campo]);
+    });
     var amount = tr.querySelector('[data-amount]');
     if (amount) amount.textContent = moneyUsd(item.amount_usd);
     var aCmp = tr.querySelector('a.link-action');
@@ -281,6 +340,48 @@
       if (nomes.indexOf(el.name) !== -1) el.value = el.defaultValue;
     });
   }
+
+  var CAMPOS_ITEM = ['referencia', 'descricao', 'quantidade', 'preco_usd', 'ncm'];
+
+  function mostrarEdicao(tr, editando) {
+    tr.classList.toggle('is-editing', editando);
+    tr.querySelectorAll('.item-valor').forEach(function (el) { el.hidden = editando; });
+    tr.querySelectorAll('.item-campo').forEach(function (el) { el.hidden = !editando; });
+    var formEl = tr.querySelector('.form-editar-item');
+    if (formEl) formEl.hidden = !editando;
+    var btnEditar = tr.querySelector('.btn-editar-item');
+    if (btnEditar) btnEditar.setAttribute('aria-expanded', editando ? 'true' : 'false');
+  }
+
+  /** Fecha a linha descartando o que não foi salvo (volta ao defaultValue). */
+  function fecharLinha(tr) {
+    var formEl = tr.querySelector('.form-editar-item');
+    if (formEl) desfazerValores(formEl, CAMPOS_ITEM);
+    mostrarEdicao(tr, false);
+  }
+
+  function abrirLinha(tr) {
+    if (tr.classList.contains('is-editing')) return;
+    painel.querySelectorAll('tr.item-edit.is-editing').forEach(fecharLinha);
+    mostrarEdicao(tr, true);
+    var primeiro = tr.querySelector('.item-campo');
+    if (primeiro) primeiro.focus();
+  }
+
+  painel.addEventListener('click', function (ev) {
+    var btnEditar = ev.target.closest('.btn-editar-item');
+    if (btnEditar && painel.contains(btnEditar)) {
+      if (submitting) return;
+      abrirLinha(btnEditar.closest('tr'));
+      return;
+    }
+    var btnCancelar = ev.target.closest('.btn-cancelar-item');
+    if (btnCancelar && painel.contains(btnCancelar)) {
+      if (submitting) return;
+      fecharLinha(btnCancelar.closest('tr'));
+      setStatus('');
+    }
+  });
 
   async function parseJsonRes(res) {
     var data = null;
@@ -380,6 +481,8 @@
       });
       var data = await parseJsonRes(res);
       if (data.item) fixarValores(editForm, data.item);
+      var trEditada = editForm.closest('tr');
+      if (trEditada) mostrarEdicao(trEditada, false);
       atualizarBadge(data.qtdItens);
       atualizarSaldo(data.saldo);
       setStatus('Item atualizado.', false);

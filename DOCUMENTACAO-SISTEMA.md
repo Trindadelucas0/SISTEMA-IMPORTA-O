@@ -2,8 +2,8 @@
 
 | Item | Valor |
 |------|--------|
-| Versão do sistema | 1.1.0 — Pedidos: edição de itens e PDF fornecedor |
-| Última atualização | 30/09/2026 (edição de itens na ficha do pedido, trava por quitação, lista sem valores para o fornecedor) |
+| Versão do sistema | 1.1.1 — Pedidos: lápis para editar item |
+| Última atualização | 30/09/2026 (itens do invoice em texto; o lápis abre a linha para edição) |
 | Fonte oficial | Este arquivo |
 
 ## 1. Como usar este documento
@@ -28,6 +28,7 @@ Módulos ainda sem ficha completa estão marcados como `Não documentado ainda.`
 |--------|------|-------------|
 | 1.0.0 | Base | Pedidos, pagamentos, saldo/alocação, compras (desembaraço), análises, fornecedores, produtos, usuários |
 | 1.1.0 | Pedidos: edição de itens e PDF fornecedor | Itens editáveis na ficha `/pedidos/:id`; trava de quantidade e Unit USD com pedido quitado; nova página `/pedidos/:id/lista-fornecedor` sem valores |
+| 1.1.1 | Pedidos: lápis para editar item | Linhas de **Itens do invoice** aparecem em texto; o lápis abre uma linha por vez com **Salvar** e **Cancelar** |
 
 ## 3. Mapa de telas / conexões
 
@@ -69,6 +70,8 @@ Toolbar: **Editar**, **Saldo**, **Pagamento**, **Relatório custo**, **PDF forne
 
 #### Itens do invoice (tabela)
 
+Cada linha aparece em texto. O lápis (**Editar item**) na coluna de ações abre só aquela linha em campos, com **Salvar** e **Cancelar**. Só uma linha fica aberta por vez: abrir outra fecha a anterior e descarta o que não foi salvo. **vs última** e **Remover** ficam sempre visíveis.
+
 | Campo | O que é | Obrigatório | Regra / bloqueio | Onde olhar no código |
 |-------|---------|-------------|------------------|----------------------|
 | REF | Referência do item | Sim | Vazio → "Informe a REF do item." (400) | `pedidoController.atualizarItem` |
@@ -77,7 +80,9 @@ Toolbar: **Editar**, **Saldo**, **Pagamento**, **Relatório custo**, **PDF forne
 | Unit USD | Preço unitário em USD | Sim | Travado se o pedido está quitado | idem |
 | Amount | Qtd × Unit USD | Calculado | Não editável; recalcula após salvar | `ItemPedido.amountUsd` |
 | NCM | Classificação fiscal | Não | — | `atualizarItem` |
-| Salvar | Grava a linha sem recarregar a página | — | Enter em qualquer campo da linha também salva | `pedido-itens.js` (submit `.form-editar-item`) |
+| Lápis | Abre a linha para edição | — | Fecha a outra linha aberta, descartando o que não foi salvo | `pedido-itens.js` · `abrirLinha` |
+| Salvar | Grava a linha sem recarregar a página e volta a linha para texto | — | Enter em qualquer campo da linha também salva. Com erro (REF vazia, pedido quitado) a linha continua aberta | `pedido-itens.js` (submit `.form-editar-item`) |
+| Cancelar | Descarta as alterações e volta a linha para texto | — | Não chama o servidor | `pedido-itens.js` · `fecharLinha` |
 | vs última | Abre a análise do item contra a última compra | — | — | `/analises/comparativo/item/:ref` |
 | Remover | Exclui o item (pede confirmação) | — | Não é bloqueado pela quitação | `removerItem` |
 
@@ -118,9 +123,10 @@ Uso interno. Contém Unit USD, Amount, custos em R$, impostos e alocações. Nã
 ### Editar itens de um pedido
 
 1. Menu **Pedidos** → **Detalhe** do pedido.
-2. Na tabela **Itens do invoice**, altere REF, descrição, quantidade, Unit USD ou NCM direto na linha.
-3. Clique **Salvar** na linha (ou tecle Enter). A mensagem "Item atualizado." aparece e o Amount/indicadores mudam.
-4. Se o pedido está **Quitado fornecedor**, Qtd e Unit USD ficam cinza (somente leitura). Para mudar valores, é preciso primeiro ajustar as alocações no **Saldo**.
+2. Na tabela **Itens do invoice**, clique no lápis da linha. Os campos REF, descrição, quantidade, Unit USD e NCM abrem.
+3. Altere o que precisar e clique **Salvar** (ou tecle Enter). A mensagem "Item atualizado." aparece, o Amount/indicadores mudam e a linha volta a texto.
+4. Para desistir, clique **Cancelar**: a linha volta ao valor gravado.
+5. Se o pedido está **Quitado fornecedor**, Qtd e Unit USD ficam cinza (somente leitura) mesmo com a linha aberta. Para mudar valores, é preciso primeiro ajustar as alocações no **Saldo**.
 
 ### Gerar o PDF para o fornecedor (sem valores)
 
@@ -133,7 +139,8 @@ Não use **Relatório custo** para o fornecedor: ele tem preços e custos.
 
 ## 9. Checklist de validação
 
-- [ ] Pedido não quitado: mudar Unit USD e salvar → Amount e Invoice USD atualizam sem recarregar.
+- [ ] Ficha do pedido: itens em texto; lápis abre uma linha; abrir outra fecha a primeira; Cancelar volta ao valor gravado.
+- [ ] Pedido não quitado: mudar Unit USD e salvar → Amount e Invoice USD atualizam sem recarregar e a linha fecha.
 - [ ] Pedido quitado: Qtd e Unit USD em somente leitura; mudar descrição salva.
 - [ ] PDF fornecedor: nenhum `R$`, `USD`, `$`, `Invoice`, `Alocado`, `NCM` na página.
 - [ ] Relatório custo continua com valores.

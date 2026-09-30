@@ -1233,6 +1233,30 @@
       gap: 0.6rem;
       white-space: nowrap;
     }
+    .item-edit [hidden] { display: none !important; }
+    .item-edit .form-editar-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .item-edit .item-valor { white-space: nowrap; }
+    .item-edit .item-valor[data-campo="descricao"] { white-space: normal; }
+    .btn-editar-item {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.9rem;
+      height: 1.9rem;
+      padding: 0;
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--primary);
+      cursor: pointer;
+    }
+    .btn-editar-item:hover { background: var(--thead); border-color: var(--border); }
+    .btn-editar-item:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+    .item-edit.is-editing .btn-editar-item { background: var(--thead); border-color: var(--border); }
     .label {
       display: block;
       font-size: 0.75rem;

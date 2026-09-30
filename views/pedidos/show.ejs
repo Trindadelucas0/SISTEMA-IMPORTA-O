@@ -173,28 +173,41 @@
           </thead>
           <tbody id="itens-tbody">
             <% itens.forEach(function(item) { %>
-              <% const formId = 'form-item-' + item.id; %>
+              <%
+                const formId = 'form-item-' + item.id;
+                const qtdInput = formatInputBr(Number(item.quantidade), casasDecimais(item.quantidade, 0));
+                const precoInput = formatInputBr(Number(item.preco_usd), casasDecimais(item.preco_usd, 2));
+              %>
               <tr class="item-edit" data-item-id="<%= item.id %>">
                 <td>
-                  <input class="field mono" name="referencia" form="<%= formId %>" required value="<%= item.referencia %>" aria-label="REF" autocomplete="off">
+                  <span class="item-valor mono" data-campo="referencia"><%= item.referencia %></span>
+                  <input class="field mono item-campo" name="referencia" form="<%= formId %>" required value="<%= item.referencia %>" aria-label="REF" autocomplete="off" hidden>
                 </td>
                 <td class="col-hide-sm">
-                  <input class="field field-desc" name="descricao" form="<%= formId %>" value="<%= item.descricao || '' %>" aria-label="Descrição">
+                  <span class="item-valor" data-campo="descricao"><%= item.descricao || '—' %></span>
+                  <input class="field field-desc item-campo" name="descricao" form="<%= formId %>" value="<%= item.descricao || '' %>" aria-label="Descrição" hidden>
                 </td>
-                <td>
-                  <input class="field field-num" name="quantidade" form="<%= formId %>" inputmode="decimal" value="<%= formatInputBr(Number(item.quantidade), casasDecimais(item.quantidade, 0)) %>" aria-label="Quantidade" <%- saldo.coberto ? 'readonly title="' + tituloTrava + '"' : '' %>>
+                <td class="num">
+                  <span class="item-valor" data-campo="quantidade"><%= qtdInput %></span>
+                  <input class="field field-num item-campo" name="quantidade" form="<%= formId %>" inputmode="decimal" value="<%= qtdInput %>" aria-label="Quantidade" hidden <%- saldo.coberto ? 'readonly title="' + tituloTrava + '"' : '' %>>
                 </td>
-                <td>
-                  <input class="field field-num" name="preco_usd" form="<%= formId %>" inputmode="decimal" value="<%= formatInputBr(Number(item.preco_usd), casasDecimais(item.preco_usd, 2)) %>" aria-label="Unit USD" <%- saldo.coberto ? 'readonly title="' + tituloTrava + '"' : '' %>>
+                <td class="num">
+                  <span class="item-valor" data-campo="preco_usd"><%= precoInput %></span>
+                  <input class="field field-num item-campo" name="preco_usd" form="<%= formId %>" inputmode="decimal" value="<%= precoInput %>" aria-label="Unit USD" hidden <%- saldo.coberto ? 'readonly title="' + tituloTrava + '"' : '' %>>
                 </td>
                 <td class="num font-semibold" data-amount><%= moneyUsd(item.amount_usd) %></td>
                 <td class="col-hide-sm">
-                  <input class="field mono" name="ncm" form="<%= formId %>" inputmode="numeric" value="<%= item.ncm || '' %>" aria-label="NCM">
+                  <span class="item-valor mono" data-campo="ncm"><%= item.ncm || '—' %></span>
+                  <input class="field mono item-campo" name="ncm" form="<%= formId %>" inputmode="numeric" value="<%= item.ncm || '' %>" aria-label="NCM" hidden>
                 </td>
                 <td>
                   <div class="item-acoes">
-                    <form id="<%= formId %>" class="form-editar-item" method="POST" action="/pedidos/<%= pedido.id %>/itens/<%= item.id %>?_method=PUT">
+                    <button type="button" class="btn-editar-item" aria-label="Editar item" title="Editar item">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                    </button>
+                    <form id="<%= formId %>" class="form-editar-item" method="POST" action="/pedidos/<%= pedido.id %>/itens/<%= item.id %>?_method=PUT" hidden>
                       <button type="submit" class="btn btn-primary btn-sm">Salvar</button>
+                      <button type="button" class="btn btn-ghost btn-sm btn-cancelar-item">Cancelar</button>
                     </form>
                     <a class="link-action" href="/analises/comparativo/item/<%= encodeURIComponent(item.referencia) %>" title="Ver análise vs última compra">vs última</a>
                     <form class="form-remover-item" method="POST" action="/pedidos/<%= pedido.id %>/itens/<%= item.id %>?_method=DELETE">
