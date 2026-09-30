@@ -2,8 +2,8 @@
 
 | Item | Valor |
 |------|--------|
-| Versão do sistema | 1.1.1 — Pedidos: lápis para editar item |
-| Última atualização | 30/09/2026 (itens do invoice em texto; o lápis abre a linha para edição) |
+| Versão do sistema | 1.1.2 — Pedidos: lápis mantém Salvar visível |
+| Última atualização | 30/09/2026 (o lápis abre a linha sem jogar a tabela de volta para o REF) |
 | Fonte oficial | Este arquivo |
 
 ## 1. Como usar este documento
@@ -29,6 +29,7 @@ Módulos ainda sem ficha completa estão marcados como `Não documentado ainda.`
 | 1.0.0 | Base | Pedidos, pagamentos, saldo/alocação, compras (desembaraço), análises, fornecedores, produtos, usuários |
 | 1.1.0 | Pedidos: edição de itens e PDF fornecedor | Itens editáveis na ficha `/pedidos/:id`; trava de quantidade e Unit USD com pedido quitado; nova página `/pedidos/:id/lista-fornecedor` sem valores |
 | 1.1.1 | Pedidos: lápis para editar item | Linhas de **Itens do invoice** aparecem em texto; o lápis abre uma linha por vez com **Salvar** e **Cancelar** |
+| 1.1.2 | Pedidos: lápis mantém Salvar visível | Correção: ao clicar no lápis, a tabela voltava para a coluna REF e **Salvar**/**Cancelar** saíam da área visível. Agora a tabela fica onde estava e anda só o necessário para mostrar **Salvar** e **Cancelar** |
 
 ## 3. Mapa de telas / conexões
 
@@ -71,6 +72,8 @@ Toolbar: **Editar**, **Saldo**, **Pagamento**, **Relatório custo**, **PDF forne
 #### Itens do invoice (tabela)
 
 Cada linha aparece em texto. O lápis (**Editar item**) na coluna de ações abre só aquela linha em campos, com **Salvar** e **Cancelar**. Só uma linha fica aberta por vez: abrir outra fecha a anterior e descarta o que não foi salvo. **vs última** e **Remover** ficam sempre visíveis.
+
+A tabela rola na horizontal quando é mais larga que o painel (lápis na última coluna). Ao clicar no lápis, o REF recebe o foco sem mover a tabela, e a rolagem avança só o necessário para **Salvar** e **Cancelar** ficarem visíveis (`pedido-itens.js` · `manterAcoesVisiveis`).
 
 | Campo | O que é | Obrigatório | Regra / bloqueio | Onde olhar no código |
 |-------|---------|-------------|------------------|----------------------|
@@ -123,7 +126,7 @@ Uso interno. Contém Unit USD, Amount, custos em R$, impostos e alocações. Nã
 ### Editar itens de um pedido
 
 1. Menu **Pedidos** → **Detalhe** do pedido.
-2. Na tabela **Itens do invoice**, clique no lápis da linha. Os campos REF, descrição, quantidade, Unit USD e NCM abrem.
+2. Na tabela **Itens do invoice**, clique no lápis da linha (se não aparecer, deslize a tabela para a direita). Os campos REF, descrição, quantidade, Unit USD e NCM abrem, e **Salvar**/**Cancelar** aparecem ao lado do lápis.
 3. Altere o que precisar e clique **Salvar** (ou tecle Enter). A mensagem "Item atualizado." aparece, o Amount/indicadores mudam e a linha volta a texto.
 4. Para desistir, clique **Cancelar**: a linha volta ao valor gravado.
 5. Se o pedido está **Quitado fornecedor**, Qtd e Unit USD ficam cinza (somente leitura) mesmo com a linha aberta. Para mudar valores, é preciso primeiro ajustar as alocações no **Saldo**.
@@ -140,6 +143,7 @@ Não use **Relatório custo** para o fornecedor: ele tem preços e custos.
 ## 9. Checklist de validação
 
 - [ ] Ficha do pedido: itens em texto; lápis abre uma linha; abrir outra fecha a primeira; Cancelar volta ao valor gravado.
+- [ ] Tabela mais larga que o painel: deslizar até o lápis e clicar → a tabela não volta para o REF e **Salvar**/**Cancelar** ficam visíveis.
 - [ ] Pedido não quitado: mudar Unit USD e salvar → Amount e Invoice USD atualizam sem recarregar e a linha fecha.
 - [ ] Pedido quitado: Qtd e Unit USD em somente leitura; mudar descrição salva.
 - [ ] PDF fornecedor: nenhum `R$`, `USD`, `$`, `Invoice`, `Alocado`, `NCM` na página.

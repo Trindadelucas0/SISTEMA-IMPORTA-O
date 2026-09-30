@@ -360,12 +360,26 @@
     mostrarEdicao(tr, false);
   }
 
+  var FOLGA_SCROLL_PX = 8;
+
+  /** A tabela rola na horizontal: traz Salvar/Cancelar para dentro da área visível. */
+  function manterAcoesVisiveis(tr) {
+    var scroller = tr.closest('.table-panel');
+    var formEl = tr.querySelector('.form-editar-item');
+    if (!scroller || !formEl) return;
+    var area = scroller.getBoundingClientRect();
+    var acoes = formEl.getBoundingClientRect();
+    var sobraDireita = acoes.right - area.right + FOLGA_SCROLL_PX;
+    if (sobraDireita > 0) scroller.scrollLeft += sobraDireita;
+  }
+
   function abrirLinha(tr) {
     if (tr.classList.contains('is-editing')) return;
     painel.querySelectorAll('tr.item-edit.is-editing').forEach(fecharLinha);
     mostrarEdicao(tr, true);
     var primeiro = tr.querySelector('.item-campo');
-    if (primeiro) primeiro.focus();
+    if (primeiro) primeiro.focus({ preventScroll: true });
+    manterAcoesVisiveis(tr);
   }
 
   painel.addEventListener('click', function (ev) {
